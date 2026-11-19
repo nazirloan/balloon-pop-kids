@@ -31,11 +31,24 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Add Mic & TTS Permissions to AndroidManifest
+      - name: Align Android SDK & Manifest Permissions
         run: |
           python3 -c '
-          path = "android/app/src/main/AndroidManifest.xml"
-          with open(path, "r") as f:
+          import re
+
+          # 1. Align SDK versions in variables.gradle for plugin compatibility
+          vpath = "android/variables.gradle"
+          with open(vpath, "r") as f:
+              vg = f.read()
+          vg = re.sub(r"compileSdkVersion\s*=\s*\d+", "compileSdkVersion = 34", vg)
+          vg = re.sub(r"targetSdkVersion\s*=\s*\d+", "targetSdkVersion = 34", vg)
+          vg = re.sub(r"minSdkVersion\s*=\s*\d+", "minSdkVersion = 23", vg)
+          with open(vpath, "w") as f:
+              f.write(vg)
+
+          # 2. Add Microphone & TTS Queries to AndroidManifest.xml
+          mpath = "android/app/src/main/AndroidManifest.xml"
+          with open(mpath, "r") as f:
               xml = f.read()
           perms = """    <uses-permission android:name="android.permission.RECORD_AUDIO" />
               <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
@@ -45,7 +58,7 @@ jobs:
               </queries>
           """
           xml = xml.replace("<application", perms + "    <application", 1)
-          with open(path, "w") as f:
+          with open(mpath, "w") as f:
               f.write(xml)
           '
 
@@ -53,7 +66,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload Ad-Free APK
         uses: actions/upload-artifact@v4
