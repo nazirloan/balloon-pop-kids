@@ -17,11 +17,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Java 17
+      - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 21
 
       - name: Install Capacitor & Voice Plugins
         run: |
@@ -36,7 +36,6 @@ jobs:
           python3 -c '
           import re
 
-          # 1. Align SDK versions in variables.gradle for plugin compatibility
           vpath = "android/variables.gradle"
           with open(vpath, "r") as f:
               vg = f.read()
@@ -46,7 +45,6 @@ jobs:
           with open(vpath, "w") as f:
               f.write(vg)
 
-          # 2. Add Microphone & TTS Queries to AndroidManifest.xml
           mpath = "android/app/src/main/AndroidManifest.xml"
           with open(mpath, "r") as f:
               xml = f.read()
