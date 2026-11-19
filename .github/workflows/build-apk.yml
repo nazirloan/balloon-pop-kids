@@ -21,13 +21,14 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Build Capacitor Android Project
+      - name: Build Capacitor Android Project with Native Voice
         run: |
           npm init -y
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor-community/text-to-speech@6 @capacitor-community/speech-recognition@6
           npx cap init "Balloon Pop" com.kids.balloonpop --web-dir www
           npx cap add android
-          sed -i 's/<application/<uses-permission android:name="android.permission.RECORD_AUDIO" \/>\n    <application/' android/app/src/main/AndroidManifest.xml
+          npx cap sync android
+          sed -i 's/<application/<uses-permission android:name="android.permission.RECORD_AUDIO" \/>\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" \/>\n    <queries><intent><action android:name="android.intent.action.TTS_SERVICE" \/><\/intent><intent><action android:name="android.speech.RecognitionService" \/><\/intent><\/queries>\n    <application/' android/app/src/main/AndroidManifest.xml
           cd android && chmod +x gradlew && ./gradlew assembleDebug
 
       - name: Upload Ad-Free APK
