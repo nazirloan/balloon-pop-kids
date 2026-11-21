@@ -3,1503 +3,1314 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Balloon Pop! Kids Learning Game</title>
+  <title>Balloon Pop! Kids & Student Learning Suite</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
     html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+      width: 100%; height: 100%; overflow: hidden;
       background: linear-gradient(180deg, #4fc3f7 0%, #81d4fa 55%, #b3e5fc 100%);
       font-family: 'Segoe UI', Roboto, 'Noto Nastaliq Urdu', 'Noto Naskh Arabic', Arial, sans-serif;
-      touch-action: none;
+      touch-action: none; transition: background 0.5s ease;
     }
+    body.night-mode { background: linear-gradient(180deg, #0d1b2a 0%, #1b263b 55%, #274c77 100%); }
+    #gameCanvas { display: block; width: 100%; height: 100%; position: fixed; inset: 0; z-index: 1; }
 
-    #gameCanvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      position: fixed;
-      inset: 0;
-      z-index: 1;
-    }
-
-    /* Top HUD */
     #hud {
-      position: fixed;
-      top: max(10px, env(safe-area-inset-top));
-      left: max(10px, env(safe-area-inset-left));
-      right: max(10px, env(safe-area-inset-right));
-      z-index: 10;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      pointer-events: none;
+      position: fixed; top: max(6px, env(safe-area-inset-top)); left: max(6px, env(safe-area-inset-left)); right: max(6px, env(safe-area-inset-right));
+      z-index: 10; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px; pointer-events: none;
     }
-
-    .hud-group {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      pointer-events: auto;
-    }
-
+    .hud-group { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; pointer-events: auto; }
     .pill {
-      background: rgba(255, 255, 255, 0.94);
-      border: 2.5px solid #0288d1;
-      border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 14px;
-      font-weight: 800;
-      color: #01579b;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: transform 0.1s ease;
+      background: rgba(255, 255, 255, 0.95); border: 2px solid #0288d1; border-radius: 999px;
+      padding: 4px 9px; font-size: 12px; font-weight: 800; color: #01579b;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.14); cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
     }
+    .pill:active { transform: scale(0.94); }
+    .pill.locked { opacity: 0.45; pointer-events: none; }
+    .pill-quiz { background: #ffca28; border-color: #f57f17; color: #3e2723; }
+    .pill-mic { background: #ff7043; border-color: #d84315; color: #fff; }
+    .pill-mic.listening { background: #e53935; animation: pulse 1s infinite; }
+    .pill-trace { background: #ab47bc; border-color: #6a1b9a; color: #fff; }
+    .pill-sticker { background: #26a69a; border-color: #00695c; color: #fff; }
+    .pill-study { background: #5c6bc0; border-color: #283593; color: #fff; }
+    .pill-night { background: #37474f; border-color: #cfd8dc; color: #fff; }
 
-    .pill:active {
-      transform: scale(0.94);
+    #lockNotice {
+      position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 11;
+      background: rgba(211, 47, 47, 0.92); color: #fff; font-size: 12px; font-weight: 800;
+      padding: 4px 14px; border-radius: 999px; display: none; pointer-events: none;
     }
-
-    .pill.locked {
-      opacity: 0.6;
-      pointer-events: none;
-    }
-
-    .pill-quiz {
-      background: #ffca28;
-      border-color: #f57f17;
-      color: #3e2723;
-    }
-
-    .pill-mic {
-      background: #ff7043;
-      border-color: #d84315;
-      color: #ffffff;
-    }
-
-    .pill-mic.listening {
-      background: #e53935;
-      animation: pulse 1s infinite;
-    }
-
-    /* Quest Banner */
     #questBanner {
-      position: fixed;
-      top: 56px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9;
-      background: rgba(255, 248, 225, 0.96);
-      border: 3px solid #ffb300;
-      border-radius: 999px;
-      padding: 6px 18px;
-      font-size: 16px;
-      font-weight: 800;
-      color: #e65100;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      cursor: pointer;
-      display: none;
-      white-space: nowrap;
+      position: fixed; top: 66px; left: 50%; transform: translateX(-50%); z-index: 9;
+      background: rgba(255, 248, 225, 0.96); border: 3px solid #ffb300; border-radius: 999px;
+      padding: 4px 14px; font-size: 14px; font-weight: 800; color: #e65100;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); cursor: pointer; display: none; white-space: nowrap;
     }
-
-    /* Live Repeat-Back Speech Bubble */
     #echoBubble {
-      position: fixed;
-      bottom: 84px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 12;
-      background: #ffffff;
-      border: 3px solid #7e57c2;
-      border-radius: 20px;
-      padding: 10px 18px;
-      font-size: 17px;
-      font-weight: 800;
-      color: #4527a0;
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
-      display: none;
-      max-width: 88vw;
-      text-align: center;
+      position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); z-index: 12;
+      background: #ffffff; border: 3px solid #7e57c2; border-radius: 20px; padding: 8px 16px;
+      font-size: 15px; font-weight: 800; color: #4527a0; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+      display: none; max-width: 88vw; text-align: center;
     }
 
-    /* Quiz Modal (Landscape & Portrait Safe) */
-    #quizModal {
-      position: fixed;
-      inset: 0;
-      z-index: 30;
-      background: rgba(1, 87, 155, 0.55);
-      backdrop-filter: blur(4px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 12px;
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 30; background: rgba(1, 42, 74, 0.68); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; padding: 8px;
     }
-
-    .quiz-card {
-      position: relative;
-      background: #ffffff;
-      border: 4px solid #0288d1;
-      border-radius: 28px;
-      width: min(460px, 94vw);
-      max-height: 90vh;
-      overflow-y: auto;
-      padding: 16px 20px 20px;
-      text-align: center;
-      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
+    .modal-card {
+      position: relative; background: #ffffff; border: 4px solid #0288d1; border-radius: 24px;
+      width: min(680px, 96vw); max-height: 92vh; overflow-y: auto; padding: 14px 16px 18px;
+      text-align: center; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
+      display: flex; flex-direction: column; align-items: center; gap: 9px;
     }
-
-    .quiz-close {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: none;
-      background: #eceff1;
-      color: #37474f;
-      font-size: 18px;
-      font-weight: 900;
-      cursor: pointer;
+    .modal-close {
+      position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border-radius: 50%;
+      border: none; background: #eceff1; color: #37474f; font-size: 18px; font-weight: 900; cursor: pointer;
     }
-
-    .quiz-title {
-      font-size: clamp(20px, 4vw, 26px);
-      font-weight: 900;
-      color: #1a237e;
-      margin-top: 2px;
+    .modal-title { font-size: clamp(18px, 3.6vw, 23px); font-weight: 900; color: #1a237e; padding-right: 28px; }
+    .tab-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; }
+    .tab-btn {
+      border: 2px solid #90caf9; background: #f1f8fe; color: #01579b; border-radius: 999px;
+      padding: 6px 12px; font-size: 13px; font-weight: 800; cursor: pointer;
     }
-
-    .quiz-emoji {
-      font-size: clamp(72px, 16vh, 115px);
-      line-height: 1.05;
-      cursor: pointer;
-      transition: transform 0.15s ease;
+    .tab-btn.active { background: #0288d1; color: #ffffff; border-color: #01579b; }
+    .search-input {
+      width: 100%; padding: 9px 14px; border-radius: 999px; border: 2px solid #90caf9;
+      font-size: 14px; font-weight: 700; outline: none; user-select: text; -webkit-user-select: text;
     }
-
-    .quiz-emoji:active {
-      transform: scale(1.12);
+    .list-container {
+      width: 100%; max-height: 56vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; text-align: left;
     }
+    .study-card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 16px; padding: 10px 14px; cursor: pointer; }
+    .study-card:active { background: #e3f2fd; }
+    .study-card h4 { font-size: 16px; color: #0d47a1; margin-bottom: 3px; }
+    .study-card p { font-size: 13px; color: #334155; line-height: 1.4; }
+    .study-card .ex { font-size: 13px; font-weight: 700; color: #00695c; margin-top: 4px; }
 
-    .quiz-status {
-      background: #f5f7fa;
-      border-radius: 14px;
-      padding: 8px 14px;
-      font-size: 15px;
-      font-weight: 700;
-      color: #37474f;
-      width: 100%;
+    .body-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; width: 100%; max-height: 58vh; overflow-y: auto; }
+    .body-tile { background: #fff8e1; border: 2px solid #ffca28; border-radius: 16px; padding: 8px 6px; text-align: center; cursor: pointer; }
+    .body-tile .em { font-size: 32px; }
+    .body-tile .en { font-size: 13px; font-weight: 900; color: #1a237e; }
+    .body-tile .tr { font-size: 13px; font-weight: 700; color: #bf360c; }
+
+    .quiz-emoji { font-size: clamp(66px, 14vh, 105px); line-height: 1.05; cursor: pointer; }
+    .status-box { background: #f5f7fa; border-radius: 14px; padding: 8px 12px; font-size: 13px; font-weight: 700; color: #37474f; width: 100%; }
+    .action-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; }
+    .action-btn {
+      border: none; border-radius: 999px; padding: 8px 15px; font-size: 13px; font-weight: 800;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 3px 8px rgba(0,0,0,0.15); color: #fff;
     }
+    .btn-red { background: #ff5252; }
+    .btn-red.listening { background: #b71c1c; animation: pulse 1s infinite; }
+    .btn-blue { background: #2979ff; }
+    .btn-orange { background: #ff9800; }
+    .btn-purple { background: #8e24aa; }
+    .btn-teal { background: #00897b; }
 
-    .quiz-actions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
+    #traceCanvas { background: #fffde7; border: 3px dashed #ffb300; border-radius: 20px; touch-action: none; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; }
+    .sticker-slot {
+      aspect-ratio: 1; border-radius: 14px; background: #eceff1; border: 2px solid #cfd8dc;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 28px; cursor: pointer;
     }
-
-    .quiz-btn {
-      border: none;
-      border-radius: 999px;
-      padding: 10px 18px;
-      font-size: 15px;
-      font-weight: 800;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    .sticker-slot.unlocked { background: #fff8e1; border-color: #ffb300; }
+    .sticker-slot span { font-size: 9px; font-weight: 800; color: #455a64; }
+    .focus-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-height: 50vh; overflow-y: auto; }
+    .focus-chip {
+      min-width: 40px; height: 40px; padding: 0 9px; border-radius: 10px; border: 2px solid #90caf9;
+      background: #f1f8fe; color: #01579b; font-size: 17px; font-weight: 900; cursor: pointer;
     }
-
-    .btn-speak { background: #ff5252; color: #fff; }
-    .btn-speak.listening { background: #b71c1c; animation: pulse 1s infinite; }
-    .btn-ask { background: #2979ff; color: #fff; }
-    .btn-next { background: #ff9800; color: #fff; }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.06); }
-    }
-
-    @media (max-height: 460px) {
-      .pill { padding: 4px 9px; font-size: 12px; }
-      #questBanner { top: 44px; font-size: 13px; padding: 4px 12px; }
-      .quiz-card { padding: 10px 16px 14px; gap: 6px; }
-      .quiz-emoji { font-size: 68px; }
-      .quiz-btn { padding: 8px 14px; font-size: 13px; }
-    }
+    .focus-chip.selected { background: #0288d1; color: #ffffff; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- Top Controls -->
   <div id="hud">
     <div class="hud-group">
       <div class="pill" id="scorePill">🎈 <span id="popCount">0</span></div>
       <button class="pill lockable" id="langBtn">🌐 EN</button>
       <button class="pill lockable" id="modeBtn">🔤 ABC & 123</button>
       <button class="pill lockable" id="playBtn">🎈 Tap</button>
-      <button class="pill lockable" id="questBtn">🎯 Find It: OFF</button>
+      <button class="pill lockable" id="questBtn">🎯 Find: OFF</button>
+      <button class="pill lockable" id="focusBtn">🔍 Focus: All</button>
       <button class="pill lockable" id="speedBtn">🐢 Slow</button>
     </div>
-
     <div class="hud-group">
       <button class="pill pill-quiz lockable" id="quizBtn">❓ Quiz</button>
-      <button class="pill pill-mic lockable" id="repeatBtn">🎤 Repeat Me</button>
-      <button class="pill" id="lockBtn" title="Hold 2s to Lock/Unlock">🔓</button>
+      <button class="pill pill-mic lockable" id="repeatBtn">🎤 Repeat</button>
+      <button class="pill pill-trace lockable" id="traceBtn">✏️ Trace</button>
+      <button class="pill pill-study lockable" id="bodyBtn">🧍 Body</button>
+      <button class="pill pill-study lockable" id="scienceBtn">🔬 Science</button>
+      <button class="pill pill-study lockable" id="transBtn">🌍 EN-UR-AR</button>
+      <button class="pill pill-study lockable" id="wordsBtn">📖 2000+ Words</button>
+      <button class="pill pill-study lockable" id="grammarBtn">📚 Grammar</button>
+      <button class="pill pill-sticker lockable" id="stickerBtn">🏆 <span id="stickerCount">1</span></button>
+      <button class="pill pill-night lockable" id="nightBtn">🌙 Day</button>
+      <button class="pill" id="lockBtn" title="Hold 1.5s to Child-Lock">🔓</button>
     </div>
   </div>
 
-  <!-- Find-It Quest Banner -->
+  <div id="lockNotice">🔒 Child Lock Active — Single-Touch Only (Hold 🔒 1.5s to Unlock)</div>
   <div id="questBanner"></div>
-
-  <!-- Repeat-Back Speech Bubble -->
   <div id="echoBubble"></div>
 
-  <!-- Ask & Answer Quiz Modal -->
-  <div id="quizModal">
-    <div class="quiz-card">
-      <button class="quiz-close" id="quizCloseBtn">✕</button>
-      <div class="quiz-title" id="quizTitle">What is this?</div>
-      <div class="quiz-emoji" id="quizEmoji" title="Tap picture to hear">🐴</div>
-      <div class="quiz-status" id="quizStatus">Tap "Speak Answer" or tap the picture!</div>
-      <div class="quiz-actions">
-        <button class="quiz-btn btn-speak" id="quizSpeakBtn">🎤 Speak Answer</button>
-        <button class="quiz-btn btn-ask" id="quizAskBtn">🔊 Ask Again</button>
-        <button class="quiz-btn btn-next" id="quizNextBtn">➡️ Next</button>
+  <!-- 1. Quiz Modal -->
+  <div class="modal-overlay" id="quizModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="quizModal">✕</button>
+      <div class="modal-title" id="quizTitle">What is this?</div>
+      <div class="quiz-emoji" id="quizEmoji">🐴</div>
+      <div class="status-box" id="quizStatus">Tap "Speak Answer" or tap the picture!</div>
+      <div class="action-row">
+        <button class="action-btn btn-red" id="quizSpeakBtn">🎤 Speak Answer</button>
+        <button class="action-btn btn-blue" id="quizAskBtn">🔊 Ask Again</button>
+        <button class="action-btn btn-orange" id="quizNextBtn">➡️ Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Tracing Modal -->
+  <div class="modal-overlay" id="traceModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="traceModal">✕</button>
+      <div class="modal-title">Trace the Letter!</div>
+      <canvas id="traceCanvas" width="260" height="230"></canvas>
+      <div class="status-box" id="traceStatus">Draw with one finger over the glowing letter!</div>
+      <div class="action-row">
+        <button class="action-btn btn-blue" id="traceClearBtn">🧹 Clear</button>
+        <button class="action-btn btn-purple" id="traceNextBtn">➡️ Next Letter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Body Parts Modal (#5) -->
+  <div class="modal-overlay" id="bodyModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="bodyModal">✕</button>
+      <div class="modal-title">🧍 Human Body Parts (Tap to Hear EN / UR / AR)</div>
+      <div class="body-grid" id="bodyGrid"></div>
+    </div>
+  </div>
+
+  <!-- 4. Science & Engineering Modal (#6) -->
+  <div class="modal-overlay" id="scienceModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="scienceModal">✕</button>
+      <div class="modal-title">🔬 Biology, Zoology, Electronics & Electrical</div>
+      <div class="tab-bar" id="scienceTabs"></div>
+      <input type="text" class="search-input" id="scienceSearch" placeholder="Search Biology, Zoology, Electronics, Electrical..." />
+      <div class="list-container" id="scienceList"></div>
+    </div>
+  </div>
+
+  <!-- 5. EN -> UR -> AR Translator (#8) -->
+  <div class="modal-overlay" id="transModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="transModal">✕</button>
+      <div class="modal-title">🌍 English → Urdu → Arabic Translator</div>
+      <input type="text" class="search-input" id="transSearch" placeholder="Search word in English, Urdu, or Arabic..." />
+      <div class="list-container" id="transList"></div>
+    </div>
+  </div>
+
+  <!-- 6. 2,000+ Daily Words Modal (#9) -->
+  <div class="modal-overlay" id="wordsModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="wordsModal">✕</button>
+      <div class="modal-title">📖 2,100+ Daily Words, Meanings & Easy Sentences</div>
+      <input type="text" class="search-input" id="wordsSearch" placeholder="Search 2,100+ daily words or meanings..." />
+      <div class="list-container" id="wordsList"></div>
+      <div class="action-row">
+        <button class="action-btn btn-blue" id="wordsPrevBtn">⬅️ Prev 50</button>
+        <span class="pill" id="wordsPageInfo">1 - 50</span>
+        <button class="action-btn btn-blue" id="wordsNextBtn">Next 50 ➡️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Grammar & Conversation Hub (#10 & #11) -->
+  <div class="modal-overlay" id="grammarModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="grammarModal">✕</button>
+      <div class="modal-title">📚 English Grammar & Conversation Usage</div>
+      <div class="tab-bar">
+        <button class="tab-btn active" id="gramTabRules">📐 Grammar Rules</button>
+        <button class="tab-btn" id="gramTabConv">💬 Conversation (I, we, will, shall, would, should, modals, articles...)</button>
+      </div>
+      <div class="list-container" id="grammarList"></div>
+    </div>
+  </div>
+
+  <!-- 8. Sticker Book Modal -->
+  <div class="modal-overlay" id="stickerModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="stickerModal">✕</button>
+      <div class="modal-title">🏆 My Sticker Book</div>
+      <div class="sticker-grid" id="stickerGrid"></div>
+    </div>
+  </div>
+
+  <!-- 9. Focus Picker Modal -->
+  <div class="modal-overlay" id="focusModal">
+    <div class="modal-card">
+      <button class="modal-close" data-close="focusModal">✕</button>
+      <div class="modal-title">🔍 Parent Focus Picker</div>
+      <div class="focus-grid" id="focusGrid"></div>
+      <div class="action-row">
+        <button class="action-btn btn-blue" id="focusAllBtn">Select All</button>
+        <button class="action-btn btn-teal" data-close="focusModal">✅ Done</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Polyfill roundRect for older Android WebViews
     if (window.CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
       CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
         if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
-        this.beginPath();
-        this.moveTo(x + r.tl, y);
-        this.lineTo(x + w - r.tr, y);
-        this.quadraticCurveTo(x + w, y, x + w, y + r.tr);
-        this.lineTo(x + w, y + h - r.br);
-        this.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
-        this.lineTo(x + r.bl, y + h);
-        this.quadraticCurveTo(x, y + h, x, y + h - r.bl);
-        this.lineTo(x, y + r.tl);
-        this.quadraticCurveTo(x, y, x + r.tl, y);
-        this.closePath();
-        return this;
+        this.beginPath(); this.moveTo(x + r.tl, y); this.lineTo(x + w - r.tr, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r.tr); this.lineTo(x + w, y + h - r.br);
+        this.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h); this.lineTo(x + r.bl, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r.bl); this.lineTo(x, y + r.tl);
+        this.quadraticCurveTo(x, y, x + r.tl, y); this.closePath(); return this;
       };
     }
 
-    // ==================== DICTIONARIES (EN / UR / AR) ====================
+    // ==================== SINGLE-FINGER TOUCH GUARD (#3) ====================
+    ['touchstart', 'touchmove'].forEach(evt => {
+      window.addEventListener(evt, (e) => {
+        if (e.touches && e.touches.length > 1) { e.preventDefault(); e.stopImmediatePropagation(); }
+      }, { passive: false, capture: true });
+    });
+
+    function parseItems(str) {
+      return str.split(',').map(p => {
+        const x = p.trim().split('|');
+        return x.length === 3 ? { w: x[0].trim(), ph: x[1].trim(), e: (x[2] || '⭐').trim() } : { w: x[0].trim(), ph: x[0].trim(), e: (x[1] || '⭐').trim() };
+      });
+    }
+
+    // ==================== 20+ ITEMS PER LETTER (EN / UR / AR) ====================
+    const RAW_LETTERS = {
+      en: {
+        A: 'Apple|🍎,Ant|🐜,Airplane|✈️,Alligator|🐊,Avocado|🥑,Apricot|🍑,Almond|🌰,Astronaut|🧑‍🚀,Anchor|⚓,Ambulance|🚑,Acorn|🌰,Axe|🪓,Angel|👼,Arm|💪,Arrow|🏹,Artist|🎨,Aquarium|🐠,Alarm|⏰,Antelope|🦌,Artichoke|🥬',
+        B: 'Ball|⚽,Banana|🍌,Bear|🐻,Butterfly|🦋,Boat|⛵,Bus|🚌,Bird|🐦,Bee|🐝,Bread|🍞,Book|📘,Balloon|🎈,Bicycle|🚲,Baby|👶,Bed|🛏️,Bell|🔔,Bottle|🍼,Bow|🎀,Box|📦,Bridge|🌉,Broccoli|🥦,Broom|🧹,Bucket|🪣',
+        C: 'Cat|🐱,Car|🚗,Cake|🎂,Carrot|🥕,Cow|🐮,Cup|🥤,Cookie|🍪,Corn|🌽,Crab|🦀,Crown|👑,Camera|📷,Candle|🕯️,Candy|🍬,Castle|🏰,Caterpillar|🐛,Chair|🪑,Cheese|🧀,Cherry|🍒,Chicken|🐔,Clock|🕒,Cloud|☁️,Coat|🧥',
+        D: 'Dog|🐶,Duck|🦆,Drum|🥁,Dolphin|🐬,Donut|🍩,Dinosaur|🦖,Door|🚪,Deer|🦌,Diamond|💎,Dice|🎲,Doctor|🩺,Doll|🪆,Dragon|🐉,Dragonfly|🪰,Dress|👗,Drop|💧,Dove|🕊️,Desk|🪑,Dessert|🍮,Dish|🍽️',
+        E: 'Elephant|🐘,Egg|🥚,Eagle|🦅,Earth|🌍,Ear|👂,Eye|👁️,Eggplant|🍆,Envelope|✉️,Engine|🚂,Eraser|🧽,Eel|🐍,Elk|🦌,Elf|🧝,Emerald|💚,Emu|🐦,Escalator|🪜,Eucalyptus|🌿,Evening|🌆,Evergreen|🌲,Explorer|🧭',
+        F: 'Fish|🐟,Frog|🐸,Flower|🌸,Fox|🦊,Fire|🔥,Feather|🪶,Flag|🚩,Flamingo|🦩,Flashlight|🔦,Flute|🎶,Fly|🪰,Foot|🦶,Football|🏈,Forest|🌲,Fork|🍴,Fountain|⛲,Fries|🍟,Fruit|🍇,Frying Pan|🍳,Fence|🚧',
+        G: 'Grapes|🍇,Giraffe|🦒,Goat|🐐,Guitar|🎸,Gift|🎁,Ghost|👻,Glass|🥛,Glasses|👓,Globe|🌐,Glove|🧤,Gold|🪙,Goose|🦢,Gorilla|🦍,Grass|🌱,Grasshopper|🦗,Green Apple|🍏,Guitarist|🎸,Gumball|🍬,Gym|🏋️,Garden|🌻',
+        H: 'Horse|🐴,Hat|🎩,House|🏠,Honeybee|🐝,Heart|❤️,Hammer|🔨,Hand|✋,Hedgehog|🦔,Helicopter|🚁,Helmet|⛑️,Hen|🐔,Hippo|🦛,Honey|🍯,Hook|🪝,Horn|📯,Hospital|🏥,Hot Dog|🌭,Hourglass|⏳,Hug|🤗,Hummingbird|🐦',
+        I: 'Ice Cream|🍦,Igloo|🛖,Insect|🐞,Island|🏝️,Ice|🧊,Ice Skate|⛸️,Iguana|🦎,Ink|🖋️,Iron|🧺,Ivy|🌿,Icicle|❄️,Idea|💡,Illusion|🪄,Impala|🦌,Inhaler|💨,Instrument|🎺,Iris|🌸,Ironing Board|🧺,Islander|🏝️,Ivory|🦷',
+        J: 'Juice|🧃,Jellyfish|🪼,Jet|✈️,Jaguar|🐆,Jacket|🧥,Jam|🍓,Jar|🫙,Jeans|👖,Jeep|🚙,Jester|🃏,Jewel|💎,Jigsaw|🧩,Jockey|🏇,Jogger|🏃,Joker|🃏,Journal|📓,Joystick|🕹️,Judge|⚖️,Juggler|🤹,Jump Rope|🪢',
+        K: 'Kite|🪁,King|👑,Koala|🐨,Kangaroo|🦘,Key|🔑,Kettle|🫖,Keyboard|⌨️,Kid|🧒,Kimono|👘,Kiss|💋,Kitchen|🍳,Kitten|🐱,Kiwi|🥝,Knee|🦵,Knife|🔪,Knight|🛡️,Knot|🪢,Koala Bear|🐨,Krill|🦐,Kayak|🛶',
+        L: 'Lion|🦁,Lemon|🍋,Leaf|🍃,Ladybug|🐞,Lamb|🐑,Lamp|🛋️,Laptop|💻,Laugh|😂,Lavender|🪻,Lawn|🌱,Leopard|🐆,Letter|✉️,Lettuce|🥬,Library|📚,Lightbulb|💡,Lightning|⚡,Lily|🌺,Lime|🍋,Lizard|🦎,Llama|🦙,Lobster|🦞,Lock|🔒',
+        M: 'Mohammad Hasnain|👦,Mohammad Izhaan|🧒,Monkey|🐒,Moon|🌙,Mango|🥭,Mouse|🐭,Milk|🥛,Mountain|⛰️,Mushroom|🍄,Music|🎵,Magnet|🧲,Mailbox|📫,Man|👨,Map|🗺️,Mask|🎭,Medal|🏅,Melon|🍈,Mermaid|🧜‍♀️,Microphone|🎤,Microscope|🔬,Mirror|🪞,Mitten|🧤,Money|💵,Monster|👾',
+        N: 'Nest|🪺,Nut|🥜,Noodles|🍜,Night|🌃,Nail|💅,Necklace|📿,Needle|🪡,Net|🥅,Newspaper|📰,Ninja|🥷,Nose|👃,Notebook|📓,Notes|🎶,Number|🔢,Nurse|👩‍⚕️,Nutcracker|🥜,Nutmeg|🌰,Narwhal|🐋,Newt|🦎,Nectarine|🍑',
+        O: 'Orange|🍊,Owl|🦉,Octopus|🐙,Onion|🧅,Ocean|🌊,Oar|🚣,Oatmeal|🥣,Office|🏢,Oil|🛢️,Olive|🫒,Omelette|🍳,Opal|💎,Opera|🎭,Orchid|🌺,Organ|🎹,Ornament|🎄,Ostrich|🐦,Otter|🦦,Oven|♨️,Ox|🐂,Oyster|🦪',
+        P: 'Penguin|🐧,Pineapple|🍍,Panda|🐼,Pizza|🍕,Pig|🐷,Pear|🍐,Peach|🍑,Peacock|🦚,Peanut|🥜,Pencil|✏️,Pepper|🫑,Piano|🎹,Pie|🥧,Pillow|🛏️,Pilot|🧑‍✈️,Pirate|🏴‍☠️,Planet|🪐,Plant|🪴,Plate|🍽️,Popcorn|🍿,Potato|🥔,Present|🎁',
+        Q: 'Queen|👸,Quilt|🛏️,Question|❓,Quail|🐦,Quarter|🪙,Quartz|💎,Quiche|🥧,Quiet|🤫,Quill|🪶,Quiver|🏹,Queue|🚶,Quokka|🐨,Quince|🍐,Quad|🏍️,Quart|🥛,Queen Bee|🐝,Quest|🗺️,Quick|⚡,Quilt Square|🧵,Quotation|💬',
+        R: 'Rabbit|🐰,Rainbow|🌈,Rocket|🚀,Rose|🌹,Robot|🤖,Rain|🌧️,Raccoon|🦝,Radio|📻,Radish|🥕,Railroad|🛤️,Ram|🐏,Rat|🐀,Rattle|🍼,Raven|🐦‍⬛,Record|💿,Recycle|♻️,Reindeer|🦌,Rhino|🦏,Ribbon|🎀,Rice|🍚,Ring|💍,River|🏞️',
+        S: 'Sun|☀️,Star|⭐,Strawberry|🍓,Snake|🐍,Sheep|🐑,Ship|🚢,Shoe|👟,Snowman|⛄,Snail|🐌,Shark|🦈,Sandwich|🥪,Santa|🎅,Saturn|🪐,Sausage|🌭,Saw|🪚,Scarf|🧣,School|🏫,Scissors|✂️,Scooter|🛴,Scorpion|🦂,Seahorse|🐴,Seal|🦭',
+        T: 'Tiger|🐯,Train|🚂,Tree|🌳,Turtle|🐢,Tomato|🍅,Teddy Bear|🧸,Telephone|☎️,Telescope|🔭,Television|📺,Tent|⛺,Thread|🧵,Thumb|👍,Thunder|⛈️,Ticket|🎫,Tie|👔,Toaster|🍞,Tooth|🦷,Tornado|🌪️,Tractor|🚜,Traffic Light|🚦,Treasure|💰,Trophy|🏆',
+        U: 'Umbrella|☂️,Unicorn|🦄,Up|⬆️,Uniform|🥋,Ukulele|🎸,Universe|🌌,Uranus|🪐,Urchin|🦔,Utensils|🍴,U-Turn|↩️,Umpire|⚾,Uncle|👨,Underground|🚇,Unicycle|🚲,Union|🤝,University|🎓,Unlock|🔓,Uplift|🎈,Upright Piano|🎹,Urn|🏺',
+        V: 'Van|🚐,Violin|🎻,Volcano|🌋,Vase|🏺,Vegetable|🥦,Veil|👰,Vest|🦺,Vet|🩺,Video|📹,Viking|🛡️,Village|🏘️,Vine|🌿,Vinegar|🍾,Violet|🪻,Viper|🐍,Visor|🧢,Voice|🗣️,Volleyball|🏐,Volt|⚡,Vulture|🦅',
+        W: 'Whale|🐳,Watermelon|🍉,Watch|⌚,Wolf|🐺,Window|🪟,Waffle|🧇,Wagon|🛒,Walnut|🌰,Wand|🪄,Warrior|⚔️,Washing Machine|🧺,Wasp|🐝,Water|💧,Wave|🌊,Web|🕸️,Wedding|💒,Well|🪣,Wheat|🌾,Wheel|🛞,Whistle|📯,Wind|💨,Wizard|🧙',
+        X: 'Xylophone|🎼,X-ray|🩻,Xmas Tree|🎄,X-box|🎮,Xenon Lamp|💡,X-mark|❌,X-wing|🚀,X-ray Fish|🐟,Xerox|🖨️,Xylem|🌿,X-axis|📏,X-factor|⭐,X-trail|🚙,X-boat|⛵,X-bird|🐦,X-star|🌟,X-boxer|🥊,X-cat|🐱,X-dog|🐶,X-planet|🪐',
+        Y: 'Yak|🐃,Yacht|🛥️,Yarn|🧶,Yam|🍠,Yard|🏡,Yawn|🥱,Year|📅,Yeast|🍞,Yellow|💛,Yes|✅,Yeti|🦍,Yoga|🧘,Yogurt|🥣,Yolk|🍳,Yo-yo|🪀,Young|👶,Youth|🧒,Yucca|🌵,Yule Log|🪵,Yummy|😋',
+        Z: 'Zebra|🦓,Zipper|🤐,Zoo|🦁,Zero|0️⃣,Zigzag|⚡,Zombie|🧟,Zone|🚧,Zucchini|🥒,Zeppelin|🎈,Zinnia|🌸,Zodiac|♈,Zookeeper|🧑‍🌾,Zoom|🔍,Zither|🎶,Zircon|💎,Zebu|🐂,Zander|🐟,Zest|🍋,Zinc|🪙,Zebra Crossing|🚸'
+      },
+      ur: {
+        'ا': 'انار|अनार|🍎,انگور|अंगूर|🍇,امرود|अमरूद|🍐,اونٹ|ऊँट|🐪,الو|उल्लू|🦉,انڈا|अंडा|🥚,اخروٹ|अखरोट|🌰,استری|इस्तरी|🧺,اخبار|अख़बार|📰,الماری|अलमारी|🚪,انجیر|अंजीर|🍈,اچار|अचार|🫙,اداکار|अदाकार|🎭,استاد|उस्ताद|👩‍🏫,اسکول|स्कूल|🏫,اشارہ|इशारा|🚦,الماس|अलमास|💎,انناس|अनानास|🍍,اوکھلی|ओखली|🥣,اڑان|उड़ान|✈️',
+        'ب': 'بلی|बिल्ली|🐱,بطخ|बत्तख|🦆,بندر|बंदर|🐒,بس|बस|🚌,بکری|बकरी|🐐,بادل|बादल|☁️,بارش|बारिश|🌧️,بالٹی|बाल्टी|🪣,باجا|बाजा|🎺,بستہ|बस्ता|🎒,برف|बर्फ़|❄️,بٹن|बटन|🔘,بستر|बिस्तर|🛏️,بھالو|भालू|🐻,بھیڑ|भेड़|🐑,بھنورا|भँवरा|🐝,بین|बीन|🐍,برتن|बर्तन|🍽️,بجلی|बिजली|⚡,باغ|बाग़|🌳',
+        'پ': 'پتنگ|पतंग|🪁,پھول|फूल|🌸,پتا|पत्ता|🍃,پہاڑ|पहाड़|⛰️,پانی|पानी|💧,پنکھا|पंखा|🌀,پیاز|प्याज़|🧅,پالک|पालक|🥬,پپیتا|पपीता|🍈,پینسل|पेंसिल|✏️,پرندہ|परिंदा|🐦,پُل|पुल|🌉,پہیہ|पहिया|🛞,پیزا|पिज़्ज़ा|🍕,پاپ کارن|पॉपकॉर्न|🍿,پودا|पौधा|🪴,پگڑی|पगड़ी|👳,پجامہ|पाजामा|👖,پنجرہ|पिंजरा|🪺,پری|परी|🧚',
+        'ت': 'تتلی|तितली|🦋,تربوز|तरबूज़|🍉,تارا|तारा|⭐,تالا|ताला|🔒,تلوار|तलवार|⚔️,تکیہ|तकिया|🛏️,تسبیح|तस्बीह|📿,ترازو|तराज़ू|⚖️,تیتر|तीतर|🐦,تیر|तीर|🏹,تندور|तंदूर|♨️,تختی|तख़्ती|📋,توبہ|तौबा|🤲,تحفہ|तोहफ़ा|🎁,تالی|ताली|👏,تالاب|तालाब|🌊,تمغہ|तमग़ा|🏅,تنکا|तिनका|🌾,تار|तार|🧵',
+        'ٹ': 'ٹماٹر|टमाटर|🍅,ٹوپی|टोपी|🎩,ٹرین|ट्रेन|🚂,ٹوکرا|टोकरा|🧺,ٹیلی فون|टेलीफ़ोन|☎️,ٹی وی|टी वी|📺,ٹریکٹر|ट्रैक्टर|🚜,ٹکٹ|टिकट|🎫,ٹافی|टॉफ़ी|🍬,ٹانگ|टाँग|🦵,ٹہنی|टहनी|🌿,ٹن|टिन|🛢️,ٹائپ رائٹر|टाइपराइटर|⌨️,ٹائر|टायर|🛞,ٹارچ|टॉर्च|🔦,ٹینٹ|टेंट|⛺,ٹیم|टीम|⚽,ٹرافی|ट्रॉफ़ी|🏆,ٹیکسی|टैक्सी|🚕',
+        'ج': 'جہاز|जहाज़|✈️,جوتا|जूता|👟,جگنو|जुगनू|🐝,جال|जाल|🥅,جنگل|जंगल|🌲,جراب|जुराब|🧦,جیب|जेब|👖,جھنڈا|झंडा|🚩,جھولا|झूला|🎠,جگ|जग|🫙,جلیبی|जलेबी|🥨,جامن|जामुन|🫐,جادوگر|जादूगर|🧙,جسم|जिस्म|🧍,جواب|जवाब|💬,جھاڑو|झाड़ू|🧹,جواہرات|जवाहरात|💎,جڑ|जड़|🌱,جوتا|जूता|👞',
+        'چ': 'چاند|चाँद|🌙,چڑیا|चिड़िया|🐦,چابی|चाबी|🔑,چمچ|चम्मच|🥄,چاقو|चाकू|🔪,چادر|चादर|🛏️,چاول|चावल|🍚,چائے|चाय|☕,چاکلیٹ|चॉकलेट|🍫,چوہا|चूहा|🐭,چیتا|चीता|🐆,چراغ|चिराग़|🪔,چشمہ|चश्मा|👓,چٹائی|चटाई|🧶,چکر|चक्र|🎡,چڑیا گھر|चिड़ियाघर|🦁,چمگادڑ|चमगादड़|🦇,چٹان|चट्टान|🪨,چوزہ|चूज़ा|🐤,چوڑی|चूड़ी|⭕',
+        'ح': 'حلوہ|हलवा|🍮,حوض|हौज़|⛲,حجام|हज्जाम|💇,حویلی|हवेली|🏰,حساب|हिसाब|🔢,حروف|हुरूफ़|🔤,حکیم|हकीम|🩺,حجاب|हिजाब|🧕,حقہ|हुक़्क़ा|🏺,حملہ|हमला|🛡️,حیوان|हैवान|🐾,حیرت|हैरत|😲,حوصلہ|हौसला|💪,حاضر|हाज़िर|🙋,حفاظت|हिफ़ाज़त|⛑️,حکم|हुक्म|📜,حلقہ|हल्क़ा|⭕,حمام|हम्माम|🛁,حسّاس|हस्सास|❤️,حبیب|हबीब|🤝',
+        'خ': 'خرگوش|खरगोश|🐰,خربوزہ|खरबूज़ा|🍈,خیمہ|ख़ेमा|⛺,خط|ख़त|✉️,خنجر|ख़ंजर|🗡️,خوبانی|ख़ुबानी|🍑,خوراک|ख़ुराक|🍲,خزانہ|ख़ज़ाना|💰,خوشی|ख़ुशी|😊,خواب|ख़्वाब|💭,خون|ख़ून|🩸,خاکہ|ख़ाका|🗺️,خدمت|ख़िदमत|🤝,خطرہ|ख़तरा|⚠️,خوشبو|ख़ुशबू|🌸,خالی|ख़ाली|🫙,خاندان|ख़ानदान|👨‍👩‍👧‍👦,خرما|ख़ुरमा|🌴,خاتون|ख़ातून|👩',
+        'د': 'درخت|दरख़्त|🌳,دودھ|दूध|🥛,دروازہ|दरवाज़ा|🚪,دانت|दाँत|🦷,دل|दिल|❤️,دوائی|दवाई|💊,دستانہ|दस्ताना|🧤,دھاگہ|धागा|🧵,دھنک|धनुष|🌈,دھوپ|धूप|☀️,دیوار|दीवार|🧱,دکان|दुकान|🏪,دوسرا|दूसरा|2️⃣,دوست|दोस्त|🤝,دعوت|दावत|🍽️,دولہا|दूल्हा|🤵,دلہن|दुल्हन|👰,دماغ|दिमाग़|🧠,دری|दरी|🧶,دسترخوان|दस्तरख़्वान|🍽️',
+        'ڈ': 'ڈرم|ड्रम|🥁,ڈولفن|डॉल्फ़िन|🐬,ڈاکٹر|डॉक्टर|🩺,ڈبہ|डिब्बा|📦,ڈوری|डोरी|🪢,ڈبل روٹی|डबल रोटी|🍞,ڈائری|डायरी|📓,ڈائنوسار|डायनासोर|🦖,ڈاک خانہ|डाकखाना|🏤,ڈالی|डाली|🌿,ڈھول|ढोल|🥁,ڈھال|ढाल|🛡️,ڈھکن|ढक्कन|🥘,ڈیزائن|डिज़ाइन|🎨,ڈیسک|डेस्क|🪑,ڈرائیور|ड्राइवर|🧑‍✈️,ڈراما|ड्रामा|🎭,ڈول|डोल|🪣,ڈنڈا|डंडा|🦯,ڈائننگ|डाइनिंग|🍽️',
+        'ر': 'ریل گاڑی|रेलगाड़ी|🚂,گلاب|गुलाब|🌹,روٹی|रोटी|🫓,رسی|रस्सी|🪢,رنگ|रंग|🎨,ریچھ|रीछ|🐻,راستہ|रास्ता|🛣️,رات|रात|🌃,راجہ|राजा|👑,رانی|रानी|👸,ریڈیو|रेडियो|📻,رومال|रूमाल|🧣,روشنی|रोशनी|💡,ریگستان|रेगिस्तान|🏜️,ریشہ|रेशा|🧶,رس|रस|🧃,روبوٹ|रोबोट|🤖,رکشا|रिक्शा|🛺,رنگین|रंगीन|🌈,ریل|रेल|🛤️',
+        'ز': 'زیبرا|ज़ेबरा|🦓,زرافہ|जिराफ़|🦒,زمین|ज़मीन|🌍,زنجیر|ज़ंजीर|⛓️,زینہ|ज़ीना|🪜,زبان|ज़बान|👅,زیتون|ज़ैतून|🫒,زرد|ज़र्द|💛,زکام|ज़ुकाम|🤧,زمرد|ज़मुर्रद|💚,زندگی|ज़िंदगी|🌱,زور|ज़ोर|💪,زیور|ज़ेवर|💍,زہرہ|ज़ोहरा|🪐,زراعت|ज़राअत|🌾,زمیندار|ज़मींदार|🧑‍🌾,زردآلو|ज़र्दालू|🍑,زنگ|ज़ंग|🔔,زیر|ज़ेर|⬇️,زبر|ज़बर|⬆️',
+        'س': 'سیب|सेब|🍎,سورج|सूरज|☀️,سانپ|साँप|🐍,سائیکل|साइकिल|🚲,سمندر|समुंदर|🌊,ستارہ|सितारा|⭐,سڑک|सड़क|🛣️,سبزی|सब्ज़ी|🥦,سونا|सोना|🪙,سکہ|सिक्का|🪙,ساعت|घड़ी|⌚,سایہ|साया|👤,سیڑھی|सीढ़ी|🪜,سنگترہ|संतरा|🍊,سفید|सफ़ेद|⚪,سکول|स्कूल|🏫,سفر|सफ़र|🧳,سلام|सलाम|👋,سپرنگ|स्प्रिंग|🌀,سورج مکھی|सूरजमुखी|🌻',
+        'ش': 'شیر|शेर|🦁,شہد|शहद|🍯,شیشہ|शीशा|🪞,شمع|शमा|🕯️,شہر|शहर|🏙️,شاخ|शाख़|🌿,شکر|शक्कर|🍬,شربت|शरबत|🧃,شترمرغ|शुतुरमुर्ग़|🐦,شکاری|शिकारी|🏹,شال|शाल|🧣,شطرنج|शतरंज|♟️,شہزادہ|शहज़ादा|🤴,شہزادی|शहज़ादी|👸,شعاع|किरण|☀️,شاپر|शॉपर|🛍️,شلوار|शलवार|👖,شام|शाम|🌆,شکریہ|शुक्रिया|🙏,شوق|शौक़|🎨',
+        'ط': 'طوطا|तोता|🦜,طیارہ|तैयारा|✈️,طبلہ|तबला|🥁,طوفان|तूफ़ान|🌪️,طاقت|ताक़त|💪,طالب علم|तालिब इल्म|🧑‍🎓,طشتری|तश्तरी|🍽️,طبیب|तबीब|🩺,طویل|लंबा|📏,طلائی|सुनहरा|🥇,طریقہ|तरीक़ा|🧭,طعام|खाना|🍲,طواف|तवाफ़|🕋,طلوع|सुबह|🌅,طوق|हार|📿,طرح|तरह|🎨,طرف|तरफ़|➡️,طبیعت|तबीयत|🌿,طوطی|तूती|🐦,طنبور|तंबूरा|🎸',
+        'ع': 'عینک|ऐनक|👓,عقاب|उक़ाब|🦅,عمارت|इमारत|🏢,عورت|औरत|👩,عید|ईद|🌙,علاج|इलाज|🩺,عطر|इत्र|🧴,علم|इल्म|📚,عقل|अक़्ल|🧠,عالم|आलिम|🧑‍🏫,عجائب گھر|अजायबघर|🏛️,عرب|अरब|🐪,عسل|शहद|🍯,عصا|लाठी|🦯,عشق|इश्क़|❤️,عظیم|अज़ीम|🏔️,عمر|उम्र|🎂,عناصر|अनासिर|🧪,عہد|वादा|🤝,عمدہ|उम्दा|👍',
+        'ف': 'فوارہ|फ़व्वारा|⛲,فٹبال|फ़ुटबॉल|⚽,فوجی|फ़ौजी|🪖,فراخ|फ़र्राख़|🧥,فروٹ|फ़्रूट|🍇,فصل|फ़सल|🌾,فرش|फ़र्श|🧶,فرشتہ|फ़रिश्ता|👼,فانوس|फ़ानूस|🏮,فلم|फ़िल्म|🎬,فون|फ़ोन|📱,فیتہ|फ़ीता|🎀,فیل|हाथी|🐘,فاختہ|फ़ाख़्ता|🕊️,فریج|फ़्रिज|🧊,فائر بریگیڈ|फ़ायर ब्रिगेड|🚒,فوٹو|फ़ोटो|📷,فولاد|फ़ौलाद|⛓️,فائدہ|फ़ायदा|✅,فکر|फ़िक्र|💭',
+        'ق': 'قلم|क़लम|🖊️,قینچی|क़ैंची|✂️,قلفی|क़ुल्फ़ी|🍦,قلعہ|क़िला|🏰,قوس قزح|इंद्रधनुष|🌈,قرآن|क़ुरआन|📖,قطار|क़तार|🚂,قمیض|क़मीज़|👕,قفل|ताला|🔒,قالین|क़ालीन|🧶,قہوہ|क़हवा|☕,قیمتی|क़ीमती|💎,قاضی|क़ाज़ी|⚖️,قدم|क़दम|👣,قندیل|क़ंदील|🏮,قوت|क़ुव्वत|💪,قطب نما|क़ुतुबनुमा|🧭,قصہ|क़िस्सा|📘,قبیلہ|क़बीला|🏕️,قریب|क़रीब|📍',
+        'ک': 'کتا|कुत्ता|🐶,کیلا|केला|🍌,کیک|केक|🎂,کتاب|किताब|📘,کبوتر|कबूतर|🕊️,کرسی|कुर्सी|🪑,کپڑا|कपड़ा|👕,کشتی|कश्ती|⛵,کنگھی|कंघी|🪮,کان|कान|👂,کدو|कद्दू|🎃,کچن|किचन|🍳,کچھوا|कछुआ|🐢,کیکڑا|केकड़ा|🦀,کافی|कॉफ़ी|☕,کیمرہ|कैमरा|📷,کار|कार|🚗,کوٹ|कोट|🧥,کسان|किसान|🧑‍🌾,کھلونا|खिलौना|🧸',
+        'گ': 'گائے|गाय|🐮,گاجر|गाजर|🥕,گیند|गेंद|⚽,گھوڑا|घोड़ा|🐴,گھر|घर|🏠,گلاس|गिलास|🥛,گڑیا|गुड़िया|🪆,گلاب|गुलाब|🌹,گھڑی|घड़ी|🕒,گوبھی|गोभी|🥦,گدھا|गधा|🫏,گلہری|गिलहरी|🐿️,گیت|गीत|🎵,گٹار|गिटार|🎸,گوند|गोंद|🧴,گلی|गली|🏘️,گڑ|गुड़|🍯,گندم|गेहूँ|🌾,گول|गोल|⭕,گلاب جامن|गुलाब जामुन|🍮',
+        'ل': 'لومڑی|लोमड़ी|🦊,لیموں|नींबू|🍋,لڈو|लुडो|🎲,لکڑی|लकड़ी|🪵,لالٹین|लालटेन|🏮,لہسن|लहसुन|🧄,لباس|लिबास|👗,لڑکا|लड़का|👦,لڑکی|लड़की|👧,لفافہ|लिफ़ाफ़ा|✉️,لہر|लहर|🌊,لوہا|लोहा|⛓️,لاٹھی|लाठी|🦯,لشکر|लश्कर|🛡️,لذیذ|लज़ीज़|😋,لکھائی|लिखाई|✍️,لٹّو|लट्टू|🪀,لہنگا|लहंगा|👗,لال|लाल|🔴,لوگ|लोग|👥',
+        'م': 'محمد حسنین|मोहम्मद हसनैन|👦,محمد اذہان|मोहम्मद इज़हान|🧒,مچھلی|मछली|🐟,مینڈک|मेंढक|🐸,آم|आम|🥭,مور|मोर|🦚,مرغی|मुर्ग़ी|🐔,مکھی|मक्खी|🐝,مکڑی|मकड़ी|🕷️,مٹر|मटर|🫛,مولی|मूली|🥕,مکھن|मक्खन|🧈,مٹھائی|मिठाई|🍬,مسجد|मस्जिद|🕌,محل|महल|🏰,موم بتی|मोमबत्ती|🕯️,موزہ|मोज़ा|🧦,مکان|मकान|🏠,موٹر سائیکل|मोटरसाइकिल|🏍️,میدان|मैदान|🏟️,میز|मेज़|🪑,مٹی|मिट्टी|🪴',
+        'ن': 'نارنگی|नारंगी|🍊,ناشپاتی|नाशपाती|🍐,نل|नल|🚰,نمک|नमक|🧂,ناؤ|नाव|⛵,ناریل|नारियल|🥥,نرس|नर्स|👩‍⚕️,نشان|निशान|🎯,نقشہ|नक़्शा|🗺️,نہر|नहर|🏞️,نیند|नींद|😴,نغمہ|नग़मा|🎶,نیا|नया|✨,نیلا|नीला|🔵,ناخن|नाख़ुन|💅,ناک|नाक|👃,نانی|नानी|👵,نانا|नाना|👴,نگر|नगर|🏙️,نور|नूर|☀️',
+        'ہ': 'ہاتھی|हाथी|🐘,ہوائی جہاز|हवाई जहाज़|✈️,ہاتھ|हाथ|✋,ہرن|हिरन|🦌,ہڈی|हड्डी|🦴,ہتھوڑا|हथौड़ा|🔨,ہونٹ|होंठ|👄,ہل|हल|🚜,ہوا|हवा|💨,ہسپتال|अस्पताल|🏥,ہار|हार|📿,ہنسی|हँसी|😂,ہفتہ|हफ़्ता|📅,ہلدی|हल्दी|🟡,ہمدردی|हमदर्दी|❤️,ہنر|हुनर|🎨,ہیرہ|हीरा|💎,ہوٹل|होटल|🏨,ہدف|लक्ष्य|🎯,ہلال|चाँद|🌙',
+        'ی': 'یکہ|यक्का|🐎,یاقوت|याक़ूत|💎,یادگار|यादगार|🏛️,یخنی|यख़नी|🍲,یکتا|एक|1️⃣,یقین|यक़ीन|✅,یوم|दिन|📅,یونیفارم|यूनिफ़ॉर्म|🥋,یورپ|यूरोप|🌍,یوگا|योगा|🧘,یو یو|यो यो|🪀,یاسمین|यास्मीन|🌼,یار|यार|🤝,یکجہتی|एकता|🤝,یخ|बर्फ़|🧊,یاد|याद|💭,یقینی|यक़ीनी|💯,یونین|यूनियन|🏢,یگانہ|अनोखा|🌟,یاور|मददगार|🦸'
+      },
+      ar: {
+        'أ': 'أرنب|🐰,أسد|🦁,أناناس|🍍,أخطبوط|🐙,أرز|🍚,أزرق|🔵,أصفر|🟡,أخضر|🟢,أحمر|🔴,أذن|👂,أنف|👃,أم|👩,أب|👨,أخت|👧,أخ|👦,أرجوحة|🎠,أقلام|🖍️,ألعاب|🧸,أوزة|🦢,أفعى|🐍',
+        'ب': 'بطة|🦆,بقرة|🐮,برتقال|🍊,بيت|🏠,باب|🚪,بحر|🌊,بصل|🧅,بطيخ|🍉,ببغاء|🦜,بومة|🦉,بلبل|🐦,بالون|🎈,باص|🚌,بطاطا|🥔,بسكويت|🍪,بئر|🪣,بوق|📯,برج|🗼,بذرة|🌱,بندقية|🏹',
+        'ت': 'تفاحة|🍎,تمساح|🐊,تاج|👑,تمر|🌴,توت|🍓,تين|🍈,تلفاز|📺,تلفون|☎️,تنين|🐉,تراب|🪴,تلميذ|🧑‍🎓,تذكرة|🎫,تزلج|⛸️,تعاون|🤝,تسلق|🧗,تلوين|🎨,تمثال|🗿,تنورة|👗,توكة|🎀,تيار|⚡',
+        'ث': 'ثعلب|🦊,ثعبان|🐍,ثور|🐂,ثلج|❄️,ثوم|🧄,ثوب|👘,ثلاجة|🧊,ثريا|💡,ثقب|🕳️,ثلاثة|3️⃣,ثانية|⏱️,ثقيل|🏋️,ثمرة|🍎,ثروة|💰,ثقة|🤝,ثقب أسود|🌌,ثنائي|2️⃣,ثوب سباحة|🩱,ثعبان البحر|🐍,ثعلب القطب|🦊',
+        'ج': 'جمل|🐪,جزر|🥕,جرس|🔔,جبل|⛰️,جسر|🌉,جبن|🧀,جندي|🪖,جريدة|📰,جوارب|🧦,جناح|🪶,جوهرة|💎,جوز|🌰,جوافة|🍐,جرار|🚜,جرو|🐶,جاموس|🐃,جدار|🧱,جزيرة|🏝️,جائزة|🏆,جيب|👖',
+        'ح': 'حصان|🐴,حوت|🐳,حليب|🥛,حمامة|🕊️,حقيبة|🎒,حذاء|👟,حافلة|🚌,حديقة|🌻,حبل|🪢,حديد|⛓️,حساء|🍲,حلزون|🐌,حمار|🫏,حمص|🫘,حناء|🌿,حوض|🛁,حكيم|👴,حارس|🛡️,حجر|🪨,حلوى|🍬',
+        'خ': 'خروف|🐑,خيمة|⛺,خبز|🍞,خاتم|💍,خيار|🥒,خوخ|🍑,خريطة|🗺️,خشب|🪵,خفاش|🦇,خنفساء|🐞,خيط|🧵,خزانة|🚪,خوذة|⛑️,خنجر|🗡️,خس|🥬,خل|🍾,خريف|🍂,خط|📏,خطاب|✉️,خاتمة|🏁',
+        'د': 'دب|🐻,دجاجة|🐔,دولفين|🐬,دراجة|🚲,درج|🪜,دفتر|📓,دواء|💊,ديك|🐓,دلو|🪣,دبوس|📍,دائرة|⭕,دخان|💨,دمية|🪆,ديناصور|🦖,درع|🛡️,دكان|🏪,دقيق|🌾,دودة|🐛,ديك رومي|🦃,دونات|🍩',
+        'ذ': 'ذرة|🌽,ذئب|🐺,ذهب|🪙,ذباب|🪰,ذيل|🐕,ذقن|🧔,ذراع|💪,ذكرى|📸,ذكي|🧠,ذئب صغير|🐺,ذرة صفراء|🌽,ذهب خالص|👑,ذرة فشار|🍿,ذئب رمادي|🐺,ذراع آلي|🦾,ذيل حصان|🐴,ذباب فاكهة|🪰,ذخيرة|🎯,ذروة|🏔️,ذوق|😋',
+        'ر': 'رمان|🍎,ريشة|🪶,رجل|👨,رأس|🗣️,رمل|🏜️,رسالة|✉️,رسم|🎨,رصاصة|✏️,ركبة|🦵,رعد|⛈️,رقص|💃,رقم|🔢,رمح|🗡️,روبوت|🤖,راديو|📻,رف|📚,رغيف|🫓,رضيع|👶,ربيع|🌸,رياح|💨',
+        'ز': 'زرافة|🦒,زهرة|🌸,زيتون|🫒,زبدة|🧈,زجاجة|🍾,زورق|🛶,زر|🔘,زعتر|🌿,زنجبيل|🫚,زبيب|🍇,زلزال|🌋,زمرد|💚,زينة|🎀,زائر|🚶,زمن|⏳,زجاج|🪟,زلاجة|🛷,زئير|🦁,زهرة الشمس|🌻,زيت|🛢️',
+        'س': 'سمكة|🐟,سيارة|🚗,سلحفاة|🐢,ساعة|⌚,سماء|🌌,سفينة|🚢,سرير|🛏️,سكين|🔪,سكر|🍬,سلم|🪜,سحاب|☁️,سنجاب|🐿️,سلة|🧺,سهم|🏹,سجادة|🧶,سوق|🏪,سوار|📿,سائق|🧑‍✈️,ساحر|🧙,سبورة|📋',
+        'ش': 'شمس|☀️,شجرة|🌳,شاي|☕,شوكة|🍴,شمعة|🕯️,شاطئ|🏖️,شرطي|👮,شعر|💇,شباك|🪟,شاحنة|🚚,شوكولاتة|🍫,شبل|🦁,شلال|🏞️,شراع|⛵,شطيرة|🥪,شعلة|🔥,شعار|🛡️,شقيق|👦,شقيقة|👧,شمام|🍈',
+        'ص': 'صاروخ|🚀,صقر|🦅,صندوق|📦,صحن|🍽️,صورة|🖼️,صابون|🧼,صوف|🧶,صخرة|🪨,صوت|🔊,صيف|☀️,صديق|🤝,صياد|🎣,صنبور|🚰,صبار|🌵,صغير|👶,صفارة|📯,صلاة|🕌,صندوق بريد|📫,صمغ|🧴,صوص|🥫',
+        'ض': 'ضفدع|🐸,ضبع|🐺,ضوء|💡,ضرس|🦷,ضباب|🌫️,ضمادة|🩹,ضيف|🚶,ضابط|👮,ضربة|🥊,ضفيرة|👧,ضحك|😂,ضخم|🐘,ضفة|🏞️,ضمان|✅,ضغط|🌡️,ضجيج|📢,ضفدع أخضر|🐸,ضوء القمر|🌙,ضوء الشمس|☀️,ضفدع صغير|🐸',
+        'ط': 'طائرة|✈️,طماطم|🍅,طاووس|🦚,طبل|🥁,طبيب|🩺,طالب|🧑‍🎓,طريق|🛣️,طاولة|🪑,طبق|🍽️,طفل|👶,طباخ|🧑‍🍳,طيور|🐦,طين|🪴,طوق|⭕,طاحونة|🎡,طابعة|🖨️,طباشير|🖍️,طربوش|🎩,طائرة ورقية|🪁,طحين|🌾',
+        'ظ': 'ظبي|🦌,ظرف|✉️,ظل|👤,ظفر|💅,ظهر|🧍,ظلام|🌑,ظرف رسالة|📩,ظبي صغير|🦌,ظل شجرة|🌳,ظفر يد|💅,ظل إنسان|👤,ظرف أبيض|✉️,ظلام الليل|🌃,ظبي الجبل|🦌,ظل جبل|⛰️,ظفر قدم|🦶,ظرف بريد|📮,ظل غيمة|☁️,ظبي الصحراء|🦌,ظل بيت|🏠',
+        'ع': 'عصفور|🐦,عنب|🍇,عسل|🍯,عين|👁️,علم|🚩,عجلة|🛞,عربة|🛒,عظم|🦴,عشب|🌱,عطر|🧴,عقد|📿,عكاز|🦯,عنب أخضر|🍇,عنب أحمر|🍇,عصفور أزرق|🐦,علبة|📦,عمود|🗼,عالم|🌍,عائلة|👨‍👩‍👧‍👦,عصير|🧃',
+        'غ': 'غزال|🦌,غيمة|☁️,غراب|🐦‍⬛,غابة|🌲,غسالة|🧺,غواصة|🚤,غصن|🌿,غرفة|🛏️,غراء|🧴,غذاء|🍲,غليون|🪈,غبار|💨,غروب|🌅,غواص|🤿,غزال صغير|🦌,غصن زيتون|🌿,غيمة مطر|🌧️,غرفة نوم|🛏️,غداء|🍽️,غسيل|👕',
+        'ف': 'فيل|🐘,فراشة|🦋,فراولة|🍓,فأر|🐭,فأس|🪓,فستان|👗,فنجان|☕,فلفل|🫑,فطر|🍄,فم|👄,فانوس|🏮,فهد|🐆,فجل|🥕,فطيرة|🥧,فندق|🏨,فنان|🎨,فارس|🏇,فضاء|🌌,فقاعة|🫧,فول|🫘',
+        'ق': 'قطة|🐱,قمر|🌙,قرد|🐒,قلم|✏️,قطار|🚂,قلب|❤️,قبعة|🎩,قارب|⛵,قصر|🏰,قفل|🔒,قميص|👕,قوس قزح|🌈,قرش|🦈,قنفذ|🦔,قهوة|☕,قنديل|🪼,قرنبيط|🥦,قطن|☁️,قوس|🏹,قمة|🏔️',
+        'ك': 'كلب|🐶,كرة|⚽,كعكة|🎂,كتاب|📘,كرسي|🪑,كوب|🥤,كمثرى|🍐,كنغر|🦘,كوالا|🐨,كاميرا|📷,كوكب|🪐,كنز|💰,كمان|🎻,كبش|🐏,كركدن|🦏,كعك|🍪,كيس|🛍️,كهف|🕳️,كوفية|🧣,كأس|🏆',
+        'ل': 'ليمون|🍋,لعبة|🧸,لبن|🥛,لحم|🥩,لسان|👅,لؤلؤ|🦪,لوحة|🖼️,ليل|🌃,لوز|🌰,لقلق|🐦,لبؤة|🦁,لفت|🥕,لبلاب|🌿,لحاف|🛏️,لون|🎨,لمبة|💡,لجام|🐴,لؤلؤة|💎,ليمون أخضر|🍋,لعب|🎮',
+        'م': 'محمد حسنين|👦,محمد إذهان|🧒,موز|🍌,مفتاح|🔑,مظلة|☂️,ماء|💧,مدرسة|🏫,مسجد|🕌,ملعقة|🥄,مقص|✂️,مرآة|🪞,مصباح|💡,مروحة|🌀,مطر|🌧️,ملح|🧂,مكتب|🪑,مطار|🛫,مهرج|🤡,محفظة|👛,منزل|🏠,مشمش|🍑,ميدالية|🏅',
+        'ن': 'نحلة|🐝,نجمة|⭐,نمر|🐯,نار|🔥,نهر|🏞️,نخلة|🌴,نظارة|👓,نعناع|🌿,نعامة|🐦,نمل|🐜,نافذة|🪟,نقود|💵,نور|💡,نبات|🪴,نورس|🐦,نرجس|🌼,نسر|🦅,نوتة|🎵,نصف|🌗,نزهة|🧺',
+        'هـ': 'هدية|🎁,هلال|🌙,هاتف|📱,هرم|🏜️,هواء|💨,هدهد|🐦,هليكوبتر|🚁,هندسة|📐,هريرة|🐱,همبرغر|🍔,هضبة|⛰️,هدف|🎯,هدوء|🤫,هلال العيد|🌙,هاتف ذكي|📱,هندباء|🌼,هالة|💫,هدايا|🎁,هواء نقي|🍃,هرم كبير|🏜️',
+        'و': 'وردة|🌹,ورقة|🍃,ولد|👦,وجه|😊,وسادة|🛏️,وطواط|🦇,وحيد القرن|🦏,وشاح|🧣,وعاء|🥣,وقت|⌚,وقود|⛽,وليمة|🍽️,وادي|🏞️,واحة|🌴,وزة|🦢,وسام|🏅,ورشة|🛠️,وردة حمراء|🌹,ورقة شجر|🍂,وطن|🌍',
+        'ي': 'يد|✋,يقطين|🎃,يمامة|🕊️,ياقوت|💎,يخت|🛥️,يوم|📅,ينبوع|⛲,يوسفي|🍊,ياسمين|🌼,يعسوب|🪰,يد صغيرة|✋,يقطين برتقالي|🎃,يمامة بيضاء|🕊️,ياقوت أزرق|💎,يخت أبيض|🛥️,يوم مشمس|☀️,ينبوع ماء|💧,ياسمين أبيض|🌼,يويو|🪀,يوغا|🧘'
+      }
+    };
+
+    const URDU_LETTER_NAMES = {
+      'ا':'अलिफ़','ب':'बे','پ':'पे','ت':'ते','ٹ':'टे','ث':'से','ج':'जीम','چ':'चे','ح':'हे','خ':'ख़े','د':'दाल','ڈ':'डाल',
+      'ذ':'ज़ाल','ر':'रे','ڑ':'ड़े','ز':'ज़े','ژ':'झे','س':'सीन','ش':'शीन','ص':'स्वाद','ض':'ज़्वाद','ط':'तोए','ظ':'ज़ोए',
+      'ع':'ऐन','غ':'ग़ैन','ف':'फ़े','ق':'क़ाफ़','ک':'काफ़','گ':'गाफ़','ل':'लाम','م':'मीम','ن':'नून','و':'वाओ','ہ':'हे','ی':'ये'
+    };
+
+    // ==================== BODY PARTS (#5), SCIENCE (#6) & TRANSLATOR (#8) ====================
+    const BODY_PARTS = [
+      ['Head','سر','सर','رأس','🗣️'],['Hair','بال','बाल','شعر','💇'],['Eye','آنکھ','आँख','عين','👁️'],['Ear','کان','कान','أذن','👂'],
+      ['Nose','ناک','नाक','أنف','👃'],['Mouth','منہ','मुँह','فم','👄'],['Lips','ہونٹ','होंठ','شفاه','💋'],['Tooth','دانت','दाँत','سن','🦷'],
+      ['Tongue','زبان','ज़बान','لسان','👅'],['Neck','گردن','गर्दन','رقبة','🧣'],['Shoulder','کندھا','कंधा','كتف','🤷'],['Arm','بازو','बाज़ू','ذراع','💪'],
+      ['Elbow','کہنی','कोहनी','مرفق','🦾'],['Hand','ہاتھ','हाथ','يد','✋'],['Finger','انگلی','उँगली','إصبع','☝️'],['Thumb','انگوٹھا','अँगूठा','إبهام','👍'],
+      ['Nail','ناخن','नाख़ुन','ظفر','💅'],['Chest','سینہ','सीना','صدر','🫁'],['Heart','دل','दिल','قلب','❤️'],['Stomach','پیٹ','पेट','بطن','🫃'],
+      ['Back','کمر','कमर','ظهر','🧍'],['Leg','ٹانگ','टाँग','ساق','🦵'],['Knee','گھٹنا','घुटना','ركبة','🦿'],['Foot','پاؤں','पाँव','قدم','🦶'],
+      ['Brain','دماغ','दिमाग़','دماغ','🧠'],['Bone','ہڈی','हड्डी','عظم','🦴']
+    ].map(([en, ur, urPh, ar, e]) => ({ en, ur, urPh, ar, e }));
+
+    const SCIENCE_VOCAB = {
+      Biology: [
+        ['Cell','🧬','Smallest structural and functional unit of life.','All living organisms are composed of cells.'],
+        ['Nucleus','⚛️','Membrane-bound organelle containing genetic DNA.','The nucleus controls cell growth and reproduction.'],
+        ['Mitochondria','🔋','Powerhouse of the cell producing ATP energy.','Muscle cells contain thousands of mitochondria.'],
+        ['Chloroplast','🌿','Plant organelle where photosynthesis occurs.','Chlorophyll inside chloroplasts absorbs sunlight.'],
+        ['Photosynthesis','☀️','Conversion of light energy into chemical glucose.','Plants release oxygen during photosynthesis.'],
+        ['DNA','🧬','Double-helix molecule carrying hereditary instructions.','DNA determines inherited traits.'],
+        ['Osmosis','💧','Diffusion of water across a selectively permeable membrane.','Root hairs absorb soil water by osmosis.'],
+        ['Enzyme','🧪','Biological protein catalyst accelerating biochemical reactions.','Amylase breaks down starch into sugar.'],
+        ['Mitosis','🔬','Cell division yielding two genetically identical cells.','Tissue repair relies on mitosis.'],
+        ['Xylem & Phloem','🌳','Vascular tissues conducting water and sugars in plants.','Xylem transports water upward from roots.']
+      ],
+      Zoology: [
+        ['Vertebrate','🦴','Animal possessing a backbone or vertebral column.','Mammals, birds, reptiles, amphibians, and fish are vertebrates.'],
+        ['Invertebrate','🦋','Animal lacking a vertebral column.','Insects, mollusks, and crustaceans are invertebrates.'],
+        ['Mammal','🦁','Warm-blooded vertebrate with hair and mammary glands.','Dolphins and bats are mammals.'],
+        ['Amphibian','🐸','Cold-blooded vertebrate living in water and on land.','Frogs respire through lungs and moist skin.'],
+        ['Reptile','🐊','Ectothermic vertebrate covered with dry epidermal scales.','Turtles and crocodiles are reptiles.'],
+        ['Arthropod','🦂','Invertebrate with jointed appendages and chitinous exoskeleton.','Spiders, crabs, and bees are arthropods.'],
+        ['Metamorphosis','🐛','Developmental transformation from larva to adult form.','A caterpillar undergoes metamorphosis into a butterfly.'],
+        ['Hibernation','🐻','State of minimal metabolic activity during winter.','Bears and hedgehogs hibernate to conserve energy.'],
+        ['Herbivore','🦒','Animal adapted to eating plant material exclusively.','Giraffes and deer are herbivores.'],
+        ['Nocturnal','🦉','Species adapted for activity during the night.','Owls and bats have specialized night vision or echolocation.']
+      ],
+      Electronics: [
+        ['Resistor','〰️','Passive component opposing current flow (Ohms Ω).','A 220 Ω resistor limits current through an LED.'],
+        ['Capacitor','🔋','Stores electrical charge in an electrostatic field (Farads F).','Capacitors filter voltage ripple in DC power supplies.'],
+        ['Inductor','🌀','Coil storing energy in a magnetic field (Henries H).','Inductors block high-frequency AC noise.'],
+        ['Diode','➡️','Semiconductor junction permitting current in one direction.','Rectifier diodes convert AC into DC.'],
+        ['Transistor','🎛️','Three-terminal semiconductor used for switching and amplification.','Microprocessors integrate billions of CMOS transistors.'],
+        ['Microcontroller','🖥️','Single-chip computer with CPU, RAM, Flash, and GPIO peripherals.','Arduino Uno is built around the ATmega328P microcontroller.'],
+        ['PWM','📊','Pulse Width Modulation varies duty cycle to control average power.','PWM adjusts LED brightness and motor speed.'],
+        ['ADC','📈','Analog-to-Digital Converter quantizes analog voltage into binary values.','A 10-bit ADC maps 0–5 V into 0–1023.'],
+        ['Oscilloscope','📉','Test instrument plotting signal voltage versus time.','Use an oscilloscope to inspect SPI clock waveforms.'],
+        ['Logic Gate','🔀','Boolean circuit (AND, OR, NOT, XOR) performing digital operations.','NAND gates are universal logic building blocks.']
+      ],
+      Electrical: [
+        ['Voltage (V)','⚡','Electric potential difference per unit charge (Volts V).','Standard household single-phase voltage in India is 230 V.'],
+        ['Current (I)','🔌','Rate of flow of electric charge (Amperes A).','By Ohm’s Law, I = V / R.'],
+        ['Ohm’s Law','📐','States V = I × R for linear ohmic conductors.','A 10 Ω load across 20 V draws 2 A.'],
+        ['Transformer','🏭','Static electromagnetic device stepping AC voltage up or down.','Step-down transformers lower 11 kV distribution to 415 V/230 V.'],
+        ['Circuit Breaker','🛡️','Automatic switch interrupting fault or overload currents.','An MCB trips rapidly during a short circuit.'],
+        ['Alternating Current (AC)','🌊','Sinusoidal current reversing polarity periodically (50 Hz in India).','Power grids transmit electricity as three-phase AC.'],
+        ['Direct Current (DC)','🔋','Constant-polarity unidirectional electric current.','Batteries and solar PV modules output DC.'],
+        ['Earthing','🌍','Low-resistance connection to earth for shock protection.','Earthing safely diverts leakage current to ground.'],
+        ['Relay','🧲','Electromechanical switch isolating low-voltage control from high-voltage loads.','A 5 V GPIO pin drives a relay coil to switch a 230 V lamp.'],
+        ['Power Factor','⚙️','Ratio of real power (kW) to apparent power (kVA), cos φ.','Shunt capacitor banks correct lagging inductive power factor.']
+      ]
+    };
+
+    const TRANSLATIONS = [
+      ['Water','پانی','पानी','ماء'],['Food','کھانا','खाना','طعام'],['Bread','روٹی','रोटी','خبز'],['Milk','دودھ','दूध','حليب'],
+      ['Mother','ماں','माँ','أم'],['Father','باپ','बाप','أب'],['Brother','بھائی','भाई','أخ'],['Sister','بہن','बहन','أخت'],
+      ['Child','بچہ','बच्चा','طفل'],['Friend','دوست','दोस्त','صديق'],['Teacher','استاد','उस्ताद','معلم'],['Book','کتاب','किताब','كتاب'],
+      ['Pen','قلم','क़लम','قلم'],['School','اسکول','स्कूल','مدرسة'],['House','گھر','घर','بيت'],['Door','دروازہ','दरवाज़ा','باب'],
+      ['Window','کھڑکی','खिड़की','نافذة'],['Sun','سورج','सूरज','شمس'],['Moon','چاند','चाँद','قمر'],['Star','تارا','तारा','نجمة'],
+      ['Sky','آسمان','आसमान','سماء'],['Earth','زمین','ज़मीन','أرض'],['Tree','درخت','दरख़्त','شجرة'],['Flower','پھول','फूल','زهرة'],
+      ['Time','وقت','वक़्त','وقت'],['Day','دن','दिन','يوم'],['Night','رات','रात','ليل'],['Morning','صبح','सुबह','صباح'],
+      ['Good','اچھا','अच्छा','جيد'],['Big','بڑا','बड़ा','كبير'],['Small','چھوٹا','छोटा','صغير'],['Happy','خوش','ख़ुश','سعيد'],
+      ['Thank you','شکریہ','शुक्रिया','شكراً'],['Please','براہ کرم','मेहरबानी','من فضلك'],['Yes','جی ہاں','जी हाँ','نعم'],['No','نہیں','नहीं','لا'],
+      ['Peace','سلامتی','सलामती','سلام'],['Knowledge','علم','इल्म','علم'],['Truth','سچ','सच','صدق'],['Light','روشنی','रोशनी','نور']
+    ].map(([en, ur, urPh, ar]) => ({ en, ur, urPh, ar }));
+
+    // ==================== 2,100+ DAILY WORDS GENERATOR (#9) ====================
+    const DAILY_WORDS = (() => {
+      const stems = [
+        ['Wake up','Stop sleeping and open eyes','I wake up early every morning.'],['Brush','Clean teeth or hair','We brush our teeth twice a day.'],
+        ['Wash','Clean with water and soap','Wash your hands before eating.'],['Drink','Swallow liquid like water','Drink clean water to stay healthy.'],
+        ['Eat','Chew and swallow food','We eat fresh fruits every day.'],['Sleep','Rest with eyes closed at night','Children sleep early at night.'],
+        ['Walk','Move forward on foot','We walk in the park each evening.'],['Run','Move quickly on foot','The boy can run very fast.'],
+        ['Jump','Push off the ground into the air','Frogs jump near the pond.'],['Sit','Rest on a chair or mat','Please sit quietly on your chair.'],
+        ['Stand','Be upright on your feet','We stand when the teacher enters.'],['Read','Look at and understand words','I read a storybook before bed.'],
+        ['Write','Form letters on paper','She writes neatly in her notebook.'],['Listen','Pay attention to sounds','Listen carefully to the lesson.'],
+        ['Speak','Say words aloud','Always speak politely to elders.'],['Smile','Make a happy face','A warm smile cheers everyone up.'],
+        ['Laugh','Make happy sounds','The baby laughs when tickled.'],['Help','Assist someone','We help our parents at home.'],
+        ['Share','Give a part to others','Good friends share their toys.'],['Clean','Remove dirt or mess','Keep your room neat and clean.'],
+        ['Open','Move a door or lid','Open the window for fresh air.'],['Close','Shut a door or book','Close the door gently.'],
+        ['Give','Hand over to someone','Please give me a glass of water.'],['Take','Reach out and hold','Take an umbrella when it rains.'],
+        ['Bring','Carry to a place','Bring your crayons to the desk.'],['Look','Direct your eyes at something','Look at the bright rainbow.'],
+        ['Find','Discover something lost','Help me find my blue pencil.'],['Learn','Gain new knowledge','We learn new words daily.'],
+        ['Teach','Help others learn','Teachers teach us how to read.'],['Play','Enjoy games and fun','Kids play happily in the garden.'],
+        ['Cook','Prepare food with heat','Mother cooks warm soup.'],['Bake','Cook bread or cake in oven','We bake a cake on Sunday.'],
+        ['Cut','Divide with knife or scissors','Cut the apple into slices.'],['Pour','Make liquid flow','Pour milk into the cup.'],
+        ['Mix','Combine ingredients','Mix lemon juice and water.'],['Taste','Sense flavor on tongue','Taste this sweet strawberry.'],
+        ['Smell','Sense odor with nose','Smell the fresh pink roses.'],['Touch','Feel with fingers','Never touch a hot stove.'],
+        ['Hold','Grasp in your hand','Hold my hand near the road.'],['Carry','Support and move something','He carries his school bag.'],
+        ['Push','Press forward','Push the swing gently.'],['Pull','Draw toward yourself','Pull the drawer open slowly.'],
+        ['Throw','Send through the air','Throw the soft ball to me.'],['Catch','Grab a moving object','Catch the ball with both hands.'],
+        ['Kick','Strike with your foot','Kick the football into the net.'],['Climb','Go up a tree or hill','Monkeys climb tall trees.'],
+        ['Swim','Move through water','Ducks swim in the lake.'],['Fly','Move through air with wings','Birds fly above the clouds.'],
+        ['Drive','Steer a car or bus','Father drives carefully.'],['Ride','Sit on and steer a bicycle','I ride my red bicycle.'],
+        ['Accept','Agree to receive','Please accept this small gift.'],['Achieve','Reach a goal by effort','Practice helps you achieve success.'],
+        ['Add','Put together','Add two spoons of honey.'],['Admire','Look at with respect','We admire the snowy mountains.'],
+        ['Advise','Offer helpful guidance','Doctors advise eating greens.'],['Agree','Have the same opinion','We agree to play fairly.'],
+        ['Allow','Give permission','Parents allow play after study.'],['Answer','Reply to a question','Raise your hand to answer.'],
+        ['Appear','Come into sight','Stars appear after sunset.'],['Arrange','Put in neat order','Arrange your books on the shelf.'],
+        ['Arrive','Reach a destination','The train arrives at nine.'],['Ask','Request information','Ask if anything is unclear.'],
+        ['Balance','Keep steady','She can balance on one foot.'],['Begin','Start doing something','Let us begin our lesson.'],
+        ['Believe','Accept as true','Believe in your abilities.'],['Borrow','Take temporarily','May I borrow your ruler?'],
+        ['Breathe','Inhale and exhale air','Breathe fresh mountain air.'],['Build','Construct from parts','Build a tower with blocks.'],
+        ['Buy','Purchase with money','We buy fresh apples.'],['Calculate','Solve using math','Calculate five plus three.'],
+        ['Call','Speak loudly or phone','Call your brother for dinner.'],['Care','Look after kindly','We care for our pets.'],
+        ['Celebrate','Rejoice for an event','We celebrate every ten pops!'],['Change','Become different','Leaves change color in autumn.'],
+        ['Check','Verify accuracy','Check your answers carefully.'],['Choose','Pick an option','Choose your favorite color.'],
+        ['Collect','Gather together','Collect smooth pebbles by the river.'],['Compare','Examine differences','Compare the elephant and ant.'],
+        ['Complete','Finish a task','Complete your homework early.'],['Connect','Join together','Connect the battery wires safely.'],
+        ['Continue','Keep going','Continue reading the story.'],['Count','Say numbers in order','Count the red apples.'],
+        ['Cover','Place over to protect','Cover the food bowl.'],['Create','Make something new','Artists create colorful art.'],
+        ['Cross','Go from one side to other','Look both ways before you cross.'],['Dance','Move to music','Children dance to the lullaby.'],
+        ['Decide','Make a choice','Decide which book to read.'],['Decorate','Make look attractive','Decorate the room with balloons.'],
+        ['Describe','Explain in words','Describe the animal on the card.'],['Design','Plan structure','Engineers design safe circuits.'],
+        ['Discover','Find for the first time','Scientists discover new facts.'],['Divide','Split into equal parts','Divide the cake into four pieces.'],
+        ['Draw','Sketch with pencil','Draw a bright yellow sun.'],['Enjoy','Take delight in','Kids enjoy popping balloons.'],
+        ['Explain','Make clear','Explain this grammar rule clearly.'],['Explore','Travel to learn','Explore the apple orchard.'],
+        ['Fix','Repair broken item','Father fixed the toy train.'],['Follow','Go behind or obey','Follow the glowing letters.'],
+        ['Grow','Increase in size','Trees grow tall with water.'],['Imagine','Picture in mind','Imagine flying over clouds.'],
+        ['Improve','Make better','Daily practice improves speech.'],['Measure','Find size or amount','Measure the table length.'],
+        ['Observe','Watch carefully','Observe plants facing sunlight.'],['Protect','Keep safe from harm','Helmets protect our heads.'],
+        ['Remember','Keep in memory','Remember to say thank you.'],['Repeat','Say again','Repeat the word after the voice.'],
+        ['Respect','Treat with honor','Respect parents and teachers.'],['Solve','Find the answer','Solve the fruit addition sum.'],
+        ['Thank','Express gratitude','Thank your friend for sharing.'],['Understand','Grasp meaning','Examples help us understand.'],
+        ['Visit','Go to see','We visit grandparents on Sunday.'],['Welcome','Greet warmly','Welcome guests with a smile.']
+      ];
+      const frames = [
+        ['', (w,m)=>m, (w,m,s)=>s],
+        ['Daily ', (w,m)=>`${m} as a daily habit`, (w)=>`We ${w.toLowerCase()} every single day.`],
+        ['Carefully ', (w,m)=>`To ${m.toLowerCase()} with care`, (w)=>`Please ${w.toLowerCase()} carefully each time.`],
+        ['Quickly ', (w,m)=>`To ${m.toLowerCase()} fast`, (w)=>`Try to ${w.toLowerCase()} quickly and neatly.`],
+        ['Always ', (w,m)=>`Habit of remembering to ${m.toLowerCase()}`, (w)=>`Good children always ${w.toLowerCase()} on time.`],
+        ['Kindly ', (w,m)=>`Polite way to ${m.toLowerCase()}`, (w)=>`Would you kindly ${w.toLowerCase()} with us?`],
+        ['Together ', (w,m)=>`To ${m.toLowerCase()} with family or friends`, (w)=>`We love to ${w.toLowerCase()} together after school.`],
+        ['Happily ', (w,m)=>`To ${m.toLowerCase()} with joy`, (w)=>`The children ${w.toLowerCase()} happily in class.`],
+        ['Safely ', (w,m)=>`To ${m.toLowerCase()} without danger`, (w)=>`Always ${w.toLowerCase()} safely with an adult.`],
+        ['Neatly ', (w,m)=>`To ${m.toLowerCase()} cleanly`, (w)=>`Remember to ${w.toLowerCase()} neatly.`],
+        ['Properly ', (w,m)=>`To ${m.toLowerCase()} the right way`, (w)=>`Learn how to ${w.toLowerCase()} properly.`],
+        ['Morning ', (w,m)=>`Morning routine: ${m.toLowerCase()}`, (w)=>`Every morning we ${w.toLowerCase()} before breakfast.`],
+        ['Evening ', (w,m)=>`Evening routine: ${m.toLowerCase()}`, (w)=>`In the evening we ${w.toLowerCase()} at home.`],
+        ['School ', (w,m)=>`Classroom activity: ${m.toLowerCase()}`, (w)=>`At school students ${w.toLowerCase()} with teachers.`],
+        ['Home ', (w,m)=>`Household habit: ${m.toLowerCase()}`, (w)=>`At home we ${w.toLowerCase()} to help family.`],
+        ['Outdoor ', (w,m)=>`Outside activity: ${m.toLowerCase()}`, (w)=>`In sunny weather we ${w.toLowerCase()} outdoors.`],
+        ['Early ', (w,m)=>`To ${m.toLowerCase()} ahead of time`, (w)=>`It is wise to ${w.toLowerCase()} early.`],
+        ['Gently ', (w,m)=>`To ${m.toLowerCase()} softly`, (w)=>`Always ${w.toLowerCase()} gently so nothing breaks.`],
+        ['Clearly ', (w,m)=>`To ${m.toLowerCase()} distinctly`, (w)=>`Speak and ${w.toLowerCase()} clearly for everyone.`],
+        ['Patiently ', (w,m)=>`To ${m.toLowerCase()} calmly`, (w)=>`We should ${w.toLowerCase()} patiently while waiting.`]
+      ];
+      const out = [];
+      for (const [pre, mFn, sFn] of frames) {
+        for (const [w, m, s] of stems) {
+          out.push([pre ? `${pre}${w.toLowerCase()}` : w, mFn(w, m), sFn(w, m, s)]);
+        }
+      }
+      return out; // 20 x 106 = 2,120 daily words with meanings & sentences!
+    })();
+
+    // ==================== GRAMMAR RULES & CONVERSATION USAGE (#10 & #11) ====================
+    const GRAMMAR_RULES = [
+      { title: '1. Subject & Predicate', rule: 'Subject is who/what the sentence is about; Predicate tells what the subject does or is.', formula: 'Subject + Predicate (Verb + Object)', ex: '[Mohammad Hasnain] (Subject) + [pops the red balloon.] (Predicate)<br>[We] (Subject) + [learn grammar together.] (Predicate)' },
+      { title: '2. Nouns (Naming Words)', rule: 'Names a person, place, animal, thing, or idea. Proper nouns begin with capital letters.', formula: 'Common Noun (boy, city) | Proper Noun (Mohammad Izhaan, Srinagar)', ex: 'Mohammad Izhaan loves reading his storybook in Srinagar.' },
+      { title: '3. Pronouns & Reflexive Pronouns', rule: 'Replace nouns. Reflexive pronouns (-self / -selves) refer back to the subject.', formula: 'I, we, he, she, it, they | Object: him, her, them | Possessive: his, her, their | Reflexive: himself, herself, themselves', ex: 'He lost his pen so I gave him mine.<br>She looked at herself in the mirror.<br>They cleaned their room all by themselves.' },
+      { title: '4. Articles (A, An, The)', rule: '"a" before consonant sounds, "an" before vowel sounds (a,e,i,o,u), "the" for specific/unique nouns.', formula: 'a + consonant | an + vowel | the + specific noun', ex: 'I saw a horse and an elephant. The sun shines brightly.' },
+      { title: '5. Verbs & Past Tense (including Sought)', rule: 'Express action or state. Irregular verbs change form: seek → sought.', formula: 'Present: seek / go | Past: sought / went', ex: 'The traveler sought shelter under a tree and sought advice from his guide.' },
+      { title: '6. Modals (Will, Shall, Would, Should, May, Might, Ought)', rule: 'Modify main verbs to express future, polite request, duty, advice, or possibility.', formula: 'Subject + Modal + Base Verb', ex: 'I will study and we shall succeed.<br>Would you pass that book? You should drink water and we ought to speak truth.<br>It may rain today, or it might stay sunny.' },
+      { title: '7. Place & Pointer Words (Here, There, That, It, Their)', rule: '"here" (near), "there" (far), "that" (distant pointer), "it" (object/animal), "their" (ownership).', formula: 'here vs there | that | it | their', ex: 'Come here and look at that star! Put the box over there near their bicycles; it is heavy.' },
+      { title: '8. Conjunctions, Adjectives & Prepositions', rule: 'Conjunctions join clauses (and, but, because); Adjectives describe nouns; Prepositions show position (in, on, under).', formula: 'and / but / because | Adjective + Noun | in / on / under', ex: 'The clever cat slept under the table because it was tired.' }
+    ];
+
+    const CONVERSATION_USAGE = [
+      { word: 'I / We', role: 'First-Person Pronouns', diag: 'Teacher: "Who wants to read?" — Student: "I will read first, and then we will read together!"' },
+      { word: 'Will / Shall', role: 'Future & Determination', diag: 'Parent: "When will we visit the orchard?" — Child: "We shall go tomorrow morning, and I will water the apple trees!"' },
+      { word: 'Would / Should', role: 'Polite Request & Advice', diag: 'Mother: "Would you like warm milk?" — Child: "Yes please! I should brush my teeth right after."' },
+      { word: 'He / Him / His / Himself', role: 'Masculine Pronouns', diag: 'Look at Hasnain! He tied his shoelaces all by himself. Everyone clapped for him!' },
+      { word: 'She / Her / Herself', role: 'Feminine Pronouns', diag: 'Sara painted a rainbow. She chose her favorite colors and framed it all by herself.' },
+      { word: 'Their / Themselves', role: 'Plural Possessive & Reflexive', diag: 'The children arranged their books and cleaned their toys all by themselves.' },
+      { word: 'Here / There', role: 'Near vs Far Place Words', diag: 'Come sit right here on the mat, and look over there at the butterfly on that rose!' },
+      { word: 'That / It', role: 'Pointer & Neutral Pronoun', diag: 'Pick up that magnet carefully—it attracts iron nails because it has a magnetic field.' },
+      { word: 'A / An / The', role: 'Articles in Conversation', diag: 'We packed a sandwich, an orange, and an apple. The picnic under the big tree was fun!' },
+      { word: 'May / Might', role: 'Permission & Possibility', diag: 'Student: "May I open the window?" — Teacher: "Yes, look at those clouds—it might rain soon."' },
+      { word: 'Ought (to)', role: 'Moral Duty', diag: 'We ought to speak politely, tell the truth, and help our neighbors whenever they need us.' },
+      { word: 'Sought', role: 'Past Tense of Seek', diag: 'When the hiker lost his path, he sought shelter under a pine tree and sought help from a villager.' }
+    ];
+
+    // ==================== CORE DICTIONARIES ====================
     const DATA = {
       en: {
-        label: '🌐 EN',
-        ttsLang: 'en-US',
-        srLang: 'en-US',
-        modes: ['🔤 ABC & 123', '🔤 ABC Only', '🔢 123 Only', '🌈 Colors', '⭐ Shapes', '➕ Math'],
-        plays: ['🎈 Tap', '🏹 Shoot', '🧸 Tickle & Talk'],
-        questOn: '🎯 Find It: ON',
-        questOff: '🎯 Find It: OFF',
-        slow: '🐢 Slow',
-        normal: '🐇 Normal',
-        quizBtn: '❓ Quiz',
-        repeatBtn: '🎤 Repeat Me',
-        listening: '👂 Listening...',
-        quizPrompt: 'What is this?',
-        quizHint: 'Tap "Speak Answer" and say its name!',
-        quizCorrect: (w) => `Yes! It is ${w}!`,
-        quizRetry: (w) => `Good try! It is ${w}. Say ${w}!`,
-        cheer: 'Yay! Great job!',
-        findPrompt: (label) => `Can you pop ${label}?`,
-        forWord: (ch, w) => `${ch} for ${w}!`,
-        mathSpeak: (a, b, sum, w) => `${a} plus ${b} equals ${sum}! ${sum} ${w}!`,
-        tickleLines: [
-          'Heehee! That tickles!',
-          'Leave me! I will burst if touched hard!',
-          'Careful! I am getting super big!',
-          'Stop rubbing me, haha!'
+        label: '🌐 EN', ttsLang: 'en-US', srLang: 'en-US',
+        modes: ['🔤 ABC & 123', '🔤 ABC Only', '🔢 123 Only', '🌈 Colors', '⭐ Shapes', '➕ Math', '🐾 Animals & Vehicles', '🍉 Fruit Arcade'],
+        plays: ['🎈 Tap', '🏹 Shoot Up', '⬇️ Shoot Down', '🧸 Tickle & Burst'],
+        questOn: '🎯 Find: ON', questOff: '🎯 Find: OFF', slow: '🐢 Slow', normal: '🐇 Fast',
+        quizBtn: '❓ Quiz', repeatBtn: '🎤 Repeat', traceBtn: '✏️ Trace', dayLabel: '☀️ Day', nightLabel: '🌙 Night',
+        listening: '👂 Listening...', quizPrompt: 'What is this?', quizPromptPh: 'What is this?',
+        quizHint: 'Tap "Speak Answer" or tap the picture!',
+        quizCorrect: (w) => `Yes! It is ${w}!`, quizCorrectPh: (ph) => `Yes! It is ${ph}!`,
+        quizRetry: (w) => `Good try! It is ${w}. Say ${w}!`, quizRetryPh: (ph) => `Good try! It is ${ph}. Say ${ph}!`,
+        cheerPh: 'Yay! Great job! New sticker unlocked!',
+        findPrompt: (ph) => `Can you pop ${ph}?`, forWord: (ch, ph) => `${ch} for ${ph}!`,
+        mathSpeak: (a, b, sum, ph) => `${a} plus ${b} equals ${sum}! ${sum} ${ph}!`,
+        animalsVehicles: [
+          { w:'Lion',ph:'Lion',e:'🦁',sfx:'roar' },{ w:'Cow',ph:'Cow',e:'🐮',sfx:'moo' },{ w:'Duck',ph:'Duck',e:'🦆',sfx:'quack' },
+          { w:'Cat',ph:'Cat',e:'🐱',sfx:'meow' },{ w:'Dog',ph:'Dog',e:'🐶',sfx:'bark' },{ w:'Elephant',ph:'Elephant',e:'🐘',sfx:'trumpet' },
+          { w:'Train',ph:'Train',e:'🚂',sfx:'train' },{ w:'Car',ph:'Car',e:'🚗',sfx:'horn' },{ w:'Airplane',ph:'Airplane',e:'✈️',sfx:'plane' },{ w:'Rocket',ph:'Rocket',e:'🚀',sfx:'rocket' }
         ],
-        letters: {
-          A: [{ w: 'Apple', e: '🍎' }, { w: 'Ant', e: '🐜' }, { w: 'Apricot', e: '🍑' }, { w: 'Almond', e: '🌰' }, { w: 'Avocado', e: '🥑' }],
-          B: [{ w: 'Ball', e: '⚽' }, { w: 'Banana', e: '🍌' }, { w: 'Bear', e: '🐻' }, { w: 'Butterfly', e: '🦋' }, { w: 'Boat', e: '⛵' }],
-          C: [{ w: 'Cat', e: '🐱' }, { w: 'Car', e: '🚗' }, { w: 'Cake', e: '🎂' }, { w: 'Carrot', e: '🥕' }, { w: 'Cow', e: '🐮' }],
-          D: [{ w: 'Dog', e: '🐶' }, { w: 'Duck', e: '🦆' }, { w: 'Drum', e: '🥁' }, { w: 'Dolphin', e: '🐬' }, { w: 'Donut', e: '🍩' }],
-          E: [{ w: 'Elephant', e: '🐘' }, { w: 'Egg', e: '🥚' }, { w: 'Eagle', e: '🦅' }, { w: 'Earth', e: '🌍' }],
-          F: [{ w: 'Fish', e: '🐟' }, { w: 'Frog', e: '🐸' }, { w: 'Flower', e: '🌸' }, { w: 'Fox', e: '🦊' }],
-          G: [{ w: 'Grapes', e: '🍇' }, { w: 'Giraffe', e: '🦒' }, { w: 'Goat', e: '🐐' }, { w: 'Guitar', e: '🎸' }],
-          H: [{ w: 'Horse', e: '🐴' }, { w: 'Hat', e: '🎩' }, { w: 'House', e: '🏠' }, { w: 'Honeybee', e: '🐝' }],
-          I: [{ w: 'Ice Cream', e: '🍦' }, { w: 'Igloo', e: '🛖' }, { w: 'Insect', e: '🐞' }, { w: 'Island', e: '🏝️' }],
-          J: [{ w: 'Juice', e: '🧃' }, { w: 'Jellyfish', e: '🪼' }, { w: 'Jet', e: '✈️' }, { w: 'Jaguar', e: '🐆' }],
-          K: [{ w: 'Kite', e: '🪁' }, { w: 'King', e: '👑' }, { w: 'Koala', e: '🐨' }, { w: 'Kangaroo', e: '🦘' }],
-          L: [{ w: 'Lion', e: '🦁' }, { w: 'Lemon', e: '🍋' }, { w: 'Leaf', e: '🍃' }, { w: 'Ladybug', e: '🐞' }],
-          M: [{ w: 'Monkey', e: '🐒' }, { w: 'Moon', e: '🌙' }, { w: 'Mango', e: '🥭' }, { w: 'Mouse', e: '🐭' }],
-          N: [{ w: 'Nest', e: '🪺' }, { w: 'Nut', e: '🥜' }, { w: 'Noodles', e: '🍜' }, { w: 'Night', e: '🌃' }],
-          O: [{ w: 'Orange', e: '🍊' }, { w: 'Owl', e: '🦉' }, { w: 'Octopus', e: '🐙' }, { w: 'Onion', e: '🧅' }],
-          P: [{ w: 'Penguin', e: '🐧' }, { w: 'Pineapple', e: '🍍' }, { w: 'Panda', e: '🐼' }, { w: 'Pizza', e: '🍕' }],
-          Q: [{ w: 'Queen', e: '👸' }, { w: 'Quilt', e: '🛏️' }, { w: 'Question', e: '❓' }],
-          R: [{ w: 'Rabbit', e: '🐰' }, { w: 'Rainbow', e: '🌈' }, { w: 'Rocket', e: '🚀' }, { w: 'Rose', e: '🌹' }],
-          S: [{ w: 'Sun', e: '☀️' }, { w: 'Star', e: '⭐' }, { w: 'Strawberry', e: '🍓' }, { w: 'Snake', e: '🐍' }],
-          T: [{ w: 'Tiger', e: '🐯' }, { w: 'Train', e: '🚂' }, { w: 'Tree', e: '🌳' }, { w: 'Turtle', e: '🐢' }],
-          U: [{ w: 'Umbrella', e: '☂️' }, { w: 'Unicorn', e: '🦄' }, { w: 'Up', e: '⬆️' }],
-          V: [{ w: 'Van', e: '🚐' }, { w: 'Violin', e: '🎻' }, { w: 'Volcano', e: '🌋' }],
-          W: [{ w: 'Whale', e: '🐳' }, { w: 'Watermelon', e: '🍉' }, { w: 'Watch', e: '⌚' }, { w: 'Wolf', e: '🐺' }],
-          X: [{ w: 'Xylophone', e: '🎼' }, { w: 'X-ray', e: '🩻' }],
-          Y: [{ w: 'Yak', e: '🐃' }, { w: 'Yacht', e: '🛥️' }, { w: 'Yarn', e: '🧶' }],
-          Z: [{ w: 'Zebra', e: '🦓' }, { w: 'Zipper', e: '🤐' }, { w: 'Zoo', e: '🦁' }]
-        },
+        fruits: [
+          { w:'Apple',ph:'Apple',e:'🍎' },{ w:'Banana',ph:'Banana',e:'🍌' },{ w:'Watermelon',ph:'Watermelon',e:'🍉' },{ w:'Grapes',ph:'Grapes',e:'🍇' },
+          { w:'Strawberry',ph:'Strawberry',e:'🍓' },{ w:'Mango',ph:'Mango',e:'🥭' },{ w:'Orange',ph:'Orange',e:'🍊' },{ w:'Pineapple',ph:'Pineapple',e:'🍍' }
+        ],
+        letters: Object.fromEntries(Object.entries(RAW_LETTERS.en).map(([k, v]) => [k, parseItems(v)])),
         numbers: [
-          { d: '0', w: 'Zero', e: '⭕' }, { d: '1', w: 'One Apple', e: '🍎' },
-          { d: '2', w: 'Two Ducks', e: '🦆' }, { d: '3', w: 'Three Stars', e: '⭐' },
-          { d: '4', w: 'Four Cars', e: '🚗' }, { d: '5', w: 'Five Fish', e: '🐟' },
-          { d: '6', w: 'Six Bees', e: '🐝' }, { d: '7', w: 'Seven Flowers', e: '🌸' },
-          { d: '8', w: 'Eight Bears', e: '🐻' }, { d: '9', w: 'Nine Hearts', e: '❤️' }
+          { d:'0',w:'Zero',ph:'Zero',e:'⭕' },{ d:'1',w:'One Apple',ph:'One Apple',e:'🍎' },{ d:'2',w:'Two Ducks',ph:'Two Ducks',e:'🦆' },
+          { d:'3',w:'Three Stars',ph:'Three Stars',e:'⭐' },{ d:'4',w:'Four Cars',ph:'Four Cars',e:'🚗' },{ d:'5',w:'Five Fish',ph:'Five Fish',e:'🐟' },
+          { d:'6',w:'Six Bees',ph:'Six Bees',e:'🐝' },{ d:'7',w:'Seven Flowers',ph:'Seven Flowers',e:'🌸' },{ d:'8',w:'Eight Bears',ph:'Eight Bears',e:'🐻' },{ d:'9',w:'Nine Hearts',ph:'Nine Hearts',e:'❤️' }
         ],
         colors: [
-          { name: 'Red', hex: '#ef5350', e: '🍓' },
-          { name: 'Blue', hex: '#29b6f6', e: '🐳' },
-          { name: 'Green', hex: '#66bb6a', e: '🐸' },
-          { name: 'Yellow', hex: '#ffee58', e: '🍌' },
-          { name: 'Orange', hex: '#ffa726', e: '🍊' },
-          { name: 'Purple', hex: '#ab47bc', e: '🍇' },
-          { name: 'Pink', hex: '#ec407a', e: '🌸' }
+          { name:'Red',ph:'Red',hex:'#ef5350',e:'🍓' },{ name:'Blue',ph:'Blue',hex:'#29b6f6',e:'🐳' },{ name:'Green',ph:'Green',hex:'#66bb6a',e:'🐸' },
+          { name:'Yellow',ph:'Yellow',hex:'#ffee58',e:'🍌' },{ name:'Orange',ph:'Orange',hex:'#ffa726',e:'🍊' },{ name:'Purple',ph:'Purple',hex:'#ab47bc',e:'🍇' },{ name:'Pink',ph:'Pink',hex:'#ec407a',e:'🌸' }
         ],
         shapes: [
-          { id: 'circle', name: 'Circle', e: '⚪' },
-          { id: 'star', name: 'Star', e: '⭐' },
-          { id: 'heart', name: 'Heart', e: '❤️' },
-          { id: 'square', name: 'Square', e: '🟧' },
-          { id: 'triangle', name: 'Triangle', e: '🔺' }
+          { id:'circle',name:'Circle',ph:'Circle',e:'⚪' },{ id:'star',name:'Star',ph:'Star',e:'⭐' },{ id:'heart',name:'Heart',ph:'Heart',e:'❤️' },
+          { id:'square',name:'Square',ph:'Square',e:'🟧' },{ id:'triangle',name:'Triangle',ph:'Triangle',e:'🔺' }
         ]
       },
-
       ur: {
-        label: '🌐 اردو',
-        ttsLang: 'ur-PK',
-        srLang: 'ur-PK',
-        modes: ['🔤 حروف و اعداد', '🔤 صرف حروف', '🔢 صرف اعداد', '🌈 رنگ', '⭐ اشکال', '➕ حساب'],
-        plays: ['🎈 ٹچ', '🏹 نشانہ', '🧸 گدگدی'],
-        questOn: '🎯 تلاش کریں: آن',
-        questOff: '🎯 تلاش کریں: آف',
-        slow: '🐢 آہستہ',
-        normal: '🐇 تیز',
-        quizBtn: '❓ سوال جواب',
-        repeatBtn: '🎤 میری نقل',
-        listening: '👂 سن رہا ہوں...',
-        quizPrompt: 'یہ کیا ہے؟',
+        label: '🌐 اردو', ttsLang: 'ur-IN', srLang: 'ur-IN',
+        modes: ['🔤 حروف و اعداد', '🔤 صرف حروف', '🔢 صرف اعداد', '🌈 رنگ', '⭐ اشکال', '➕ حساب', '🐾 جانور اور گاڑیاں', '🍉 پھلوں کا کھیل'],
+        plays: ['🎈 ٹچ', '🏹 اوپر نشانہ', '⬇️ نیچے نشانہ', '🧸 رگڑیں اور پھوڑیں'],
+        questOn: '🎯 تلاش: آن', questOff: '🎯 تلاش: آف', slow: '🐢 آہستہ', normal: '🐇 تیز',
+        quizBtn: '❓ سوال', repeatBtn: '🎤 نقل', traceBtn: '✏️ لکھیں', dayLabel: '☀️ دن', nightLabel: '🌙 رات',
+        listening: '👂 سن رہا ہوں...', quizPrompt: 'یہ کیا ہے؟', quizPromptPh: 'यह क्या है?',
         quizHint: 'بولیں یا تصویر کو چھوئیں!',
-        quizCorrect: (w) => `جی ہاں! یہ ${w} ہے!`,
-        quizRetry: (w) => `یہ ${w} ہے! بولیں ${w}!`,
-        cheer: 'شاباش! بہت خوب!',
-        findPrompt: (label) => `${label} والا غبارہ پھوڑیں!`,
-        forWord: (ch, w) => `${ch} سے ${w}!`,
-        mathSpeak: (a, b, sum, w) => `${a} جمع ${b} برابر ${sum}! ${sum} ${w}!`,
-        tickleLines: [
-          'ہی ہی! مجھے گدگدی ہو رہی ہے!',
-          'مجھے چھوڑ دو! زور سے چھوا تو میں پھٹ جاؤں گا!',
-          'خبردار! میں بہت بڑا ہو رہا ہوں!',
-          'ہاہا! بس کرو!'
+        quizCorrect: (w) => `جی ہاں! یہ ${w} ہے!`, quizCorrectPh: (ph) => `जी हाँ! यह ${ph} है!`,
+        quizRetry: (w) => `یہ ${w} ہے! بولیں ${w}!`, quizRetryPh: (ph) => `यह ${ph} है! बोलिए ${ph}!`,
+        cheerPh: 'शाबाश! नया स्टिकर मिल गया!',
+        findPrompt: (ph) => `${ph} वाला गुब्बारा फोड़ें!`, forWord: (ch, ph) => `${URDU_LETTER_NAMES[ch] || ch} से ${ph}!`,
+        mathSpeak: (a, b, sum, ph) => `${a} जमा ${b} बराबर ${sum}! ${sum} ${ph}!`,
+        animalsVehicles: [
+          { w:'شیر',ph:'शेर',e:'🦁',sfx:'roar' },{ w:'گائے',ph:'गाय',e:'🐮',sfx:'moo' },{ w:'بطخ',ph:'बत्तख',e:'🦆',sfx:'quack' },
+          { w:'بلی',ph:'बिल्ली',e:'🐱',sfx:'meow' },{ w:'کتا',ph:'कुत्ता',e:'🐶',sfx:'bark' },{ w:'ہاتھی',ph:'हाथी',e:'🐘',sfx:'trumpet' },
+          { w:'ریل گاڑی',ph:'रेलगाड़ी',e:'🚂',sfx:'train' },{ w:'گاڑی',ph:'गाड़ी',e:'🚗',sfx:'horn' },{ w:'ہوائی جہاز',ph:'हवाई जहाज़',e:'✈️',sfx:'plane' },{ w:'راکٹ',ph:'रॉकेट',e:'🚀',sfx:'rocket' }
         ],
-        letters: {
-          'ا': [{ w: 'انار', e: '🍎' }, { w: 'انگور', e: '🍇' }, { w: 'امرود', e: '🍐' }, { w: 'اونٹ', e: '🐪' }],
-          'ب': [{ w: 'بلی', e: '🐱' }, { w: 'بطخ', e: '🦆' }, { w: 'بندر', e: '🐒' }, { w: 'بس', e: '🚌' }],
-          'پ': [{ w: 'پتنگ', e: '🪁' }, { w: 'پھول', e: '🌸' }, { w: 'پتا', e: '🍃' }],
-          'ت': [{ w: 'تتلی', e: '🦋' }, { w: 'تربوز', e: '🍉' }, { w: 'تارا', e: '⭐' }],
-          'ٹ': [{ w: 'ٹماٹر', e: '🍅' }, { w: 'ٹوپی', e: '🎩' }, { w: 'ٹرین', e: '🚂' }],
-          'ج': [{ w: 'جہاز', e: '✈️' }, { w: 'جوتا', e: '👟' }, { w: 'جگنو', e: '🐝' }],
-          'چ': [{ w: 'چاند', e: '🌙' }, { w: 'چڑیا', e: '🐦' }, { w: 'چابی', e: '🔑' }],
-          'ح': [{ w: 'حلوہ', e: '🍮' }, { w: 'حوض', e: '⛲' }],
-          'خ': [{ w: 'خرگوش', e: '🐰' }, { w: 'خربوزہ', e: '🍈' }],
-          'د': [{ w: 'درخت', e: '🌳' }, { w: 'دودھ', e: '🥛' }],
-          'ڈ': [{ w: 'ڈرم', e: '🥁' }, { w: 'ڈولفن', e: '🐬' }],
-          'ر': [{ w: 'ریل گاڑی', e: '🚂' }, { w: 'گلاب', e: '🌹' }],
-          'ز': [{ w: 'زیبرا', e: '🦓' }, { w: 'زرافہ', e: '🦒' }],
-          'س': [{ w: 'سیب', e: '🍎' }, { w: 'سورج', e: '☀️' }, { w: 'سانپ', e: '🐍' }],
-          'ش': [{ w: 'شیر', e: '🦁' }, { w: 'شہد', e: '🍯' }],
-          'ط': [{ w: 'طوطا', e: '🦜' }, { w: 'طیارہ', e: '✈️' }],
-          'ع': [{ w: 'عینک', e: '👓' }, { w: 'عقاب', e: '🦅' }],
-          'ف': [{ w: 'فوارہ', e: '⛲' }, { w: 'فٹبال', e: '⚽' }],
-          'ق': [{ w: 'قلم', e: '🖊️' }, { w: 'قینچی', e: '✂️' }],
-          'ک': [{ w: 'کتا', e: '🐶' }, { w: 'کیلا', e: '🍌' }, { w: 'کیک', e: '🎂' }],
-          'گ': [{ w: 'گائے', e: '🐮' }, { w: 'گاجر', e: '🥕' }, { w: 'گیند', e: '⚽' }],
-          'ل': [{ w: 'لومڑی', e: '🦊' }, { w: 'لیموں', e: '🍋' }],
-          'م': [{ w: 'مچھلی', e: '🐟' }, { w: 'مینڈک', e: '🐸' }, { w: 'آم', e: '🥭' }],
-          'ن': [{ w: 'نارنگی', e: '🍊' }, { w: 'ناشپاتی', e: '🍐' }],
-          'و': [{ w: 'ورق', e: '📄' }, { w: 'وہیل', e: '🐳' }],
-          'ہ': [{ w: 'ہاتھی', e: '🐘' }, { w: 'ہوائی جہاز', e: '✈️' }],
-          'ی': [{ w: 'یکہ', e: '🐎' }, { w: 'یاقوت', e: '💎' }]
-        },
+        fruits: [
+          { w:'سیب',ph:'सेब',e:'🍎' },{ w:'کیلا',ph:'केला',e:'🍌' },{ w:'تربوز',ph:'तरबूज़',e:'🍉' },{ w:'انگور',ph:'अंगूर',e:'🍇' },
+          { w:'اسٹرابیری',ph:'स्ट्रॉबेरी',e:'🍓' },{ w:'آم',ph:'आम',e:'🥭' },{ w:'نارنگی',ph:'नारंगी',e:'🍊' },{ w:'انناس',ph:'अनानास',e:'🍍' }
+        ],
+        letters: Object.fromEntries(Object.entries(RAW_LETTERS.ur).map(([k, v]) => [k, parseItems(v)])),
         numbers: [
-          { d: '۰', w: 'صفر', e: '⭕' }, { d: '۱', w: 'ایک سیب', e: '🍎' },
-          { d: '۲', w: 'دو بطخیں', e: '🦆' }, { d: '۳', w: 'تین تارے', e: '⭐' },
-          { d: '۴', w: 'چار گاڑیاں', e: '🚗' }, { d: '۵', w: 'پانچ مچھلیاں', e: '🐟' },
-          { d: '۶', w: 'چھ مکھیاں', e: '🐝' }, { d: '۷', w: 'سات پھول', e: '🌸' },
-          { d: '۸', w: 'آٹھ بھالو', e: '🐻' }, { d: '۹', w: 'نو دل', e: '❤️' }
+          { d:'۰',n:0,w:'صفر',ph:'सिफ़र',e:'⭕' },{ d:'۱',n:1,w:'ایک سیب',ph:'एक सेब',e:'🍎' },{ d:'۲',n:2,w:'دو بطخیں',ph:'दो बत्तखें',e:'🦆' },
+          { d:'۳',n:3,w:'تین تارے',ph:'तीन तारे',e:'⭐' },{ d:'۴',n:4,w:'چار گاڑیاں',ph:'चार गाड़ियाँ',e:'🚗' },{ d:'۵',n:5,w:'پانچ مچھلیاں',ph:'पाँच मछलियाँ',e:'🐟' },
+          { d:'۶',n:6,w:'چھ مکھیاں',ph:'छह मक्खियाँ',e:'🐝' },{ d:'۷',n:7,w:'سات پھول',ph:'सात फूल',e:'🌸' },{ d:'۸',n:8,w:'آٹھ بھالو',ph:'आठ भालू',e:'🐻' },{ d:'۹',n:9,w:'نو دل',ph:'नौ दिल',e:'❤️' }
         ],
         colors: [
-          { name: 'لال', hex: '#ef5350', e: '🍓' },
-          { name: 'نیلا', hex: '#29b6f6', e: '🐳' },
-          { name: 'ہرا', hex: '#66bb6a', e: '🐸' },
-          { name: 'پیلا', hex: '#ffee58', e: '🍌' },
-          { name: 'نارنجی', hex: '#ffa726', e: '🍊' },
-          { name: 'جامنی', hex: '#ab47bc', e: '🍇' },
-          { name: 'گلابی', hex: '#ec407a', e: '🌸' }
+          { name:'لال',ph:'लाल',hex:'#ef5350',e:'🍓' },{ name:'نیلا',ph:'नीला',hex:'#29b6f6',e:'🐳' },{ name:'ہرا',ph:'हरा',hex:'#66bb6a',e:'🐸' },
+          { name:'پیلا',ph:'पीला',hex:'#ffee58',e:'🍌' },{ name:'نارنجی',ph:'नारंगी',hex:'#ffa726',e:'🍊' },{ name:'جامنی',ph:'जामुनी',hex:'#ab47bc',e:'🍇' },{ name:'گلابی',ph:'गुलाबी',hex:'#ec407a',e:'🌸' }
         ],
         shapes: [
-          { id: 'circle', name: 'گول دائرہ', e: '⚪' },
-          { id: 'star', name: 'ستارہ', e: '⭐' },
-          { id: 'heart', name: 'دل', e: '❤️' },
-          { id: 'square', name: 'چوکور', e: '🟧' },
-          { id: 'triangle', name: 'تکون', e: '🔺' }
+          { id:'circle',name:'گول دائرہ',ph:'गोल दायरा',e:'⚪' },{ id:'star',name:'ستارہ',ph:'सितारा',e:'⭐' },{ id:'heart',name:'دل',ph:'दिल',e:'❤️' },
+          { id:'square',name:'چوکور',ph:'चौकोर',e:'🟧' },{ id:'triangle',name:'تکون',ph:'तिकोन',e:'🔺' }
         ]
       },
-
       ar: {
-        label: '🌐 عربي',
-        ttsLang: 'ar-SA',
-        srLang: 'ar-SA',
-        modes: ['🔤 حروف وأرقام', '🔤 حروف فقط', '🔢 أرقام فقط', '🌈 ألوان', '⭐ أشكال', '➕ حساب'],
-        plays: ['🎈 لمس', '🏹 تصويب', '🧸 دغدغة'],
-        questOn: '🎯 ابحث: تشغيل',
-        questOff: '🎯 ابحث: إيقاف',
-        slow: '🐢 بطيء',
-        normal: '🐇 عادي',
-        quizBtn: '❓ ما هذا؟',
-        repeatBtn: '🎤 كرر كلامي',
-        listening: '👂 أستمع إليك...',
-        quizPrompt: 'ما هذا؟',
+        label: '🌐 عربي', ttsLang: 'ar-SA', srLang: 'ar-SA',
+        modes: ['🔤 حروف وأرقام', '🔤 حروف فقط', '🔢 أرقام فقط', '🌈 ألوان', '⭐ أشكال', '➕ حساب', '🐾 حيوانات ومركبات', '🍉 أركيد الفواكه'],
+        plays: ['🎈 لمس', '🏹 تصويب للأعلى', '⬇️ تصويب للأسفل', '🧸 فرك وفرقعة'],
+        questOn: '🎯 ابحث: تشغيل', questOff: '🎯 ابحث: إيقاف', slow: '🐢 بطيء', normal: '🐇 عادي',
+        quizBtn: '❓ ما هذا؟', repeatBtn: '🎤 كرر', traceBtn: '✏️ ارسم', dayLabel: '☀️ نهار', nightLabel: '🌙 ليل',
+        listening: '👂 أستمع إليك...', quizPrompt: 'ما هذا؟', quizPromptPh: 'ما هذا؟',
         quizHint: 'قل الاسم بصوت عالٍ أو المس الصورة!',
-        quizCorrect: (w) => `نعم! هذا ${w}!`,
-        quizRetry: (w) => `هذا ${w}! قل ${w}!`,
-        cheer: 'أحسنت! رائع جداً!',
-        findPrompt: (label) => `أين بالون ${label}؟`,
-        forWord: (ch, w) => `${ch}... ${w}!`,
-        mathSpeak: (a, b, sum, w) => `${a} زائد ${b} يساوي ${sum}! ${sum} ${w}!`,
-        tickleLines: [
-          'ههه! هذا يدغدغني!',
-          'اتركني! سأنفجر إذا لمستني بقوة!',
-          'انتبه! أنا أكبر كثيراً!',
-          'توقف عن الدغدغة، ههه!'
+        quizCorrect: (w) => `نعم! هذا ${w}!`, quizCorrectPh: (ph) => `نعم! هذا ${ph}!`,
+        quizRetry: (w) => `هذا ${w}! قل ${w}!`, quizRetryPh: (ph) => `هذا ${ph}! قل ${ph}!`,
+        cheerPh: 'أحسنت! ملصق جديد!',
+        findPrompt: (ph) => `أين بالون ${ph}؟`, forWord: (ch, ph) => `${ch}... ${ph}!`,
+        mathSpeak: (a, b, sum, ph) => `${a} زائد ${b} يساوي ${sum}! ${sum} ${ph}!`,
+        animalsVehicles: [
+          { w:'أسد',ph:'أسد',e:'🦁',sfx:'roar' },{ w:'بقرة',ph:'بقرة',e:'🐮',sfx:'moo' },{ w:'بطة',ph:'بطة',e:'🦆',sfx:'quack' },
+          { w:'قطة',ph:'قطة',e:'🐱',sfx:'meow' },{ w:'كلب',ph:'كلب',e:'🐶',sfx:'bark' },{ w:'فيل',ph:'فيل',e:'🐘',sfx:'trumpet' },
+          { w:'قطار',ph:'قطار',e:'🚂',sfx:'train' },{ w:'سيارة',ph:'سيارة',e:'🚗',sfx:'horn' },{ w:'طائرة',ph:'طائرة',e:'✈️',sfx:'plane' },{ w:'صاروخ',ph:'صاروخ',e:'🚀',sfx:'rocket' }
         ],
-        letters: {
-          'أ': [{ w: 'أرنب', e: '🐰' }, { w: 'أسد', e: '🦁' }, { w: 'أناناس', e: '🍍' }, { w: 'أخطبوط', e: '🐙' }],
-          'ب': [{ w: 'بطة', e: '🦆' }, { w: 'بقرة', e: '🐮' }, { w: 'برتقال', e: '🍊' }, { w: 'بيت', e: '🏠' }],
-          'ت': [{ w: 'تفاحة', e: '🍎' }, { w: 'تمساح', e: '🐊' }, { w: 'تاج', e: '👑' }],
-          'ث': [{ w: 'ثعلب', e: '🦊' }, { w: 'ثعبان', e: '🐍' }],
-          'ج': [{ w: 'جمل', e: '🐪' }, { w: 'جزر', e: '🥕' }, { w: 'جرس', e: '🔔' }],
-          'ح': [{ w: 'حصان', e: '🐴' }, { w: 'حوت', e: '🐳' }, { w: 'حليب', e: '🥛' }],
-          'خ': [{ w: 'خروف', e: '🐑' }, { w: 'خيمة', e: '⛺' }],
-          'د': [{ w: 'دب', e: '🐻' }, { w: 'دجاجة', e: '🐔' }, { w: 'دولفين', e: '🐬' }],
-          'ذ': [{ w: 'ذرة', e: '🌽' }, { w: 'ذئب', e: '🐺' }],
-          'ر': [{ w: 'رمان', e: '🍎' }, { w: 'ريشة', e: '🪶' }],
-          'ز': [{ w: 'زرافة', e: '🦒' }, { w: 'زهرة', e: '🌸' }],
-          'س': [{ w: 'سمكة', e: '🐟' }, { w: 'سيارة', e: '🚗' }, { w: 'سلحفاة', e: '🐢' }],
-          'ش': [{ w: 'شمس', e: '☀️' }, { w: 'شجرة', e: '🌳' }],
-          'ص': [{ w: 'صاروخ', e: '🚀' }, { w: 'صقر', e: '🦅' }],
-          'ض': [{ w: 'ضفدع', e: '🐸' }],
-          'ط': [{ w: 'طائرة', e: '✈️' }, { w: 'طماطم', e: '🍅' }],
-          'ع': [{ w: 'عصفور', e: '🐦' }, { w: 'عنب', e: '🍇' }, { w: 'عسل', e: '🍯' }],
-          'غ': [{ w: 'غزال', e: '🦌' }, { w: 'غيمة', e: '☁️' }],
-          'ف': [{ w: 'فيل', e: '🐘' }, { w: 'فراشة', e: '🦋' }, { w: 'فراولة', e: '🍓' }],
-          'ق': [{ w: 'قطة', e: '🐱' }, { w: 'قمر', e: '🌙' }, { w: 'قرد', e: '🐒' }],
-          'ك': [{ w: 'كلب', e: '🐶' }, { w: 'كرة', e: '⚽' }, { w: 'كعكة', e: '🎂' }],
-          'ل': [{ w: 'ليمون', e: '🍋' }, { w: 'لعبة', e: '🧸' }],
-          'م': [{ w: 'موز', e: '🍌' }, { w: 'مفتاح', e: '🔑' }, { w: 'مظلة', e: '☂️' }],
-          'ن': [{ w: 'نحلة', e: '🐝' }, { w: 'نجمة', e: '⭐' }, { w: 'نمر', e: '🐯' }],
-          'هـ': [{ w: 'هدية', e: '🎁' }, { w: 'هلال', e: '🌙' }],
-          'و': [{ w: 'وردة', e: '🌹' }, { w: 'ورقة', e: '🍃' }],
-          'ي': [{ w: 'يد', e: '✋' }, { w: 'يقطين', e: '🎃' }]
-        },
+        fruits: [
+          { w:'تفاحة',ph:'تفاحة',e:'🍎' },{ w:'موز',ph:'موز',e:'🍌' },{ w:'بطيخ',ph:'بطيخ',e:'🍉' },{ w:'عنب',ph:'عنب',e:'🍇' },
+          { w:'فراولة',ph:'فراولة',e:'🍓' },{ w:'مانجو',ph:'مانجو',e:'🥭' },{ w:'برتقال',ph:'برتقال',e:'🍊' },{ w:'أناناس',ph:'أناناس',e:'🍍' }
+        ],
+        letters: Object.fromEntries(Object.entries(RAW_LETTERS.ar).map(([k, v]) => [k, parseItems(v)])),
         numbers: [
-          { d: '٠', w: 'صفر', e: '⭕' }, { d: '١', w: 'تفاحة واحدة', e: '🍎' },
-          { d: '٢', w: 'بطتان', e: '🦆' }, { d: '٣', w: 'ثلاث نجوم', e: '⭐' },
-          { d: '٤', w: 'أربع سيارات', e: '🚗' }, { d: '٥', w: 'خمس سمكات', e: '🐟' },
-          { d: '٦', w: 'ست نحلات', e: '🐝' }, { d: '٧', w: 'سبع زهرات', e: '🌸' },
-          { d: '٨', w: 'ثمانية دببة', e: '🐻' }, { d: '٩', w: 'تسعة قلوب', e: '❤️' }
+          { d:'٠',w:'صفر',ph:'صفر',e:'⭕' },{ d:'١',w:'تفاحة واحدة',ph:'تفاحة واحدة',e:'🍎' },{ d:'٢',w:'بطتان',ph:'بطتان',e:'🦆' },
+          { d:'٣',w:'ثلاث نجوم',ph:'ثلاث نجوم',e:'⭐' },{ d:'٤',w:'أربع سيارات',ph:'أربع سيارات',e:'🚗' },{ d:'٥',w:'خمس سمكات',ph:'خمس سمكات',e:'🐟' },
+          { d:'٦',w:'ست نحلات',ph:'ست نحلات',e:'🐝' },{ d:'٧',w:'سبع زهرات',ph:'سبع زهرات',e:'🌸' },{ d:'٨',w:'ثمانية دببة',ph:'ثمانية دببة',e:'🐻' },{ d:'٩',w:'تسعة قلوب',ph:'تسعة قلوب',e:'❤️' }
         ],
         colors: [
-          { name: 'أحمر', hex: '#ef5350', e: '🍓' },
-          { name: 'أزرق', hex: '#29b6f6', e: '🐳' },
-          { name: 'أخضر', hex: '#66bb6a', e: '🐸' },
-          { name: 'أصفر', hex: '#ffee58', e: '🍌' },
-          { name: 'برتقالي', hex: '#ffa726', e: '🍊' },
-          { name: 'بنفسجي', hex: '#ab47bc', e: '🍇' },
-          { name: 'وردي', hex: '#ec407a', e: '🌸' }
+          { name:'أحمر',ph:'أحمر',hex:'#ef5350',e:'🍓' },{ name:'أزرق',ph:'أزرق',hex:'#29b6f6',e:'🐳' },{ name:'أخضر',ph:'أخضر',hex:'#66bb6a',e:'🐸' },
+          { name:'أصفر',ph:'أصفر',hex:'#ffee58',e:'🍌' },{ name:'برتقالي',ph:'برتقالي',hex:'#ffa726',e:'🍊' },{ name:'بنفسجي',ph:'بنفسجي',hex:'#ab47bc',e:'🍇' },{ name:'وردي',ph:'وردي',hex:'#ec407a',e:'🌸' }
         ],
         shapes: [
-          { id: 'circle', name: 'دائرة', e: '⚪' },
-          { id: 'star', name: 'نجمة', e: '⭐' },
-          { id: 'heart', name: 'قلب', e: '❤️' },
-          { id: 'square', name: 'مربع', e: '🟧' },
-          { id: 'triangle', name: 'مثلث', e: '🔺' }
+          { id:'circle',name:'دائرة',ph:'دائرة',e:'⚪' },{ id:'star',name:'نجمة',ph:'نجمة',e:'⭐' },{ id:'heart',name:'قلب',ph:'قلب',e:'❤️' },
+          { id:'square',name:'مربع',ph:'مربع',e:'🟧' },{ id:'triangle',name:'مثلث',ph:'مثلث',e:'🔺' }
         ]
       }
     };
 
+    const STICKER_CATALOG = [
+      { e:'🌟',name:'Gold Star' },{ e:'🦄',name:'Unicorn' },{ e:'🚀',name:'Rocket' },{ e:'🦁',name:'Lion King' },{ e:'🐼',name:'Cute Panda' },
+      { e:'🌈',name:'Rainbow' },{ e:'🐬',name:'Dolphin' },{ e:'🦋',name:'Butterfly' },{ e:'👑',name:'Royal Crown' },{ e:'🦖',name:'Dino Friend' },
+      { e:'🚂',name:'Choo-Choo' },{ e:'🍓',name:'Strawberry' },{ e:'🐘',name:'Elephant' },{ e:'🎨',name:'Artist' },{ e:'🏆',name:'Champion' }
+    ];
+
     // ==================== NATIVE CAPACITOR + WEB AUDIO/VOICE ENGINE ====================
     class VoiceAndSoundEngine {
       constructor() {
-        this.ctx = null;
-        this.voices = [];
+        this.ctx = null; this.voices = [];
         if ('speechSynthesis' in window) {
           this.voices = window.speechSynthesis.getVoices();
-          window.speechSynthesis.onvoiceschanged = () => {
-            this.voices = window.speechSynthesis.getVoices();
-          };
+          window.speechSynthesis.onvoiceschanged = () => { this.voices = window.speechSynthesis.getVoices(); };
         }
       }
-
       unlock() {
-        if (!this.ctx) {
-          const AC = window.AudioContext || window.webkitAudioContext;
-          if (AC) this.ctx = new AC();
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume().catch(() => {});
-        }
+        if (!this.ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) this.ctx = new AC(); }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
       }
-
+      playTone(freq, duration = 0.2, type = 'sine', vol = 0.25, delay = 0) {
+        this.unlock(); if (!this.ctx) return;
+        const now = this.ctx.currentTime + delay, osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(vol, now); gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + duration + 0.02);
+      }
+      playRubberRubSound() {
+        this.unlock(); if (!this.ctx) return;
+        const now = this.ctx.currentTime, osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1150, now + 0.08);
+        osc.frequency.exponentialRampToValueAtTime(640, now + 0.16); osc.frequency.exponentialRampToValueAtTime(1280, now + 0.24);
+        gain.gain.setValueAtTime(0.24, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.27);
+      }
       playPopSound() {
-        this.unlock();
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(320, now);
-        osc.frequency.exponentialRampToValueAtTime(780, now + 0.12);
-        gain.gain.setValueAtTime(0.32, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.16);
+        this.unlock(); if (!this.ctx) return;
+        const now = this.ctx.currentTime, bufSize = this.ctx.sampleRate * 0.14;
+        const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufSize * 0.25));
+        const noise = this.ctx.createBufferSource(); noise.buffer = buf;
+        const nGain = this.ctx.createGain(); nGain.gain.setValueAtTime(nightMode ? 0.25 : 0.55, now);
+        nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        noise.connect(nGain); nGain.connect(this.ctx.destination); noise.start(now);
+        const osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(280, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.12);
+        gain.gain.setValueAtTime(nightMode ? 0.2 : 0.4, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+        osc.connect(gain); gain.connect(this.ctx.destination); osc.start(now); osc.stop(now + 0.14);
       }
-
-      playBoingSound() {
-        this.unlock();
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(220, now);
-        osc.frequency.exponentialRampToValueAtTime(460, now + 0.15);
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.19);
+      playBoingSound() { this.playTone(260, 0.14, 'triangle', 0.2); }
+      playFanfare() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.playTone(f, 0.24, 'triangle', 0.22, i * 0.09)); }
+      playAnimalOrVehicleSFX(sfx) {
+        this.unlock(); if (!this.ctx) return;
+        const now = this.ctx.currentTime, osc = this.ctx.createOscillator(), gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        if (sfx === 'roar' || sfx === 'moo') {
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(sfx === 'roar' ? 130 : 165, now); osc.frequency.linearRampToValueAtTime(85, now + 0.45);
+          gain.gain.setValueAtTime(0.24, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48); osc.start(now); osc.stop(now + 0.5);
+        } else if (sfx === 'quack' || sfx === 'bark') {
+          osc.type = 'square'; osc.frequency.setValueAtTime(sfx === 'quack' ? 420 : 320, now); osc.frequency.exponentialRampToValueAtTime(210, now + 0.16);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18); osc.start(now); osc.stop(now + 0.2);
+        } else if (sfx === 'meow' || sfx === 'trumpet') {
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(sfx === 'meow' ? 460 : 340, now);
+          osc.frequency.exponentialRampToValueAtTime(sfx === 'meow' ? 760 : 620, now + 0.22); osc.frequency.exponentialRampToValueAtTime(420, now + 0.42);
+          gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.44); osc.start(now); osc.stop(now + 0.45);
+        } else if (sfx === 'train' || sfx === 'horn') {
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(sfx === 'train' ? 587 : 440, now);
+          gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); osc.start(now); osc.stop(now + 0.36);
+          this.playTone(sfx === 'train' ? 493.88 : 349.23, 0.35, 'triangle', 0.2, 0.18);
+        } else {
+          osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(920, now + 0.45);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48); osc.start(now); osc.stop(now + 0.5);
+        }
       }
-
-      playFanfare() {
-        this.unlock();
-        if (!this.ctx) return;
-        const notes = [523.25, 659.25, 783.99, 1046.5];
-        notes.forEach((freq, i) => {
-          const now = this.ctx.currentTime + i * 0.09;
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, now);
-          gain.gain.setValueAtTime(0.25, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(now);
-          osc.stop(now + 0.26);
-        });
-      }
-
       async speak(text, langCode) {
-        this.unlock();
-        if (!text) return;
-
-        // 1. Native Android/iOS Capacitor Text-To-Speech Plugin (works offline in APK!)
+        this.unlock(); if (!text) return;
+        const vol = nightMode ? 0.65 : 1.0;
+        const cleanText = String(text).replace(/[.!؟،]+/g, ' ').trim();
+        const isUr = langCode.startsWith('ur');
+        const targetLang = isUr ? 'hi-IN' : langCode;
+        const rate = isUr ? 0.80 : (nightMode ? 0.82 : 0.90);
         const capTTS = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
         if (capTTS) {
-          try {
-            await capTTS.stop();
-            await capTTS.speak({
-              text: String(text),
-              lang: langCode,
-              rate: 0.9,
-              pitch: 1.1,
-              volume: 1.0,
-              category: 'ambient'
-            });
-            return;
-          } catch (err) {
-            // Fall through to Web Speech if native call fails
+          try { await capTTS.stop(); } catch (e) {}
+          const candidates = isUr ? ['hi-IN', 'ur-IN', 'ur-PK'] : langCode.startsWith('ar') ? ['ar-SA', 'ar-AE', 'ar-EG', 'ar'] : ['en-US', 'en-IN', 'en'];
+          for (const code of candidates) {
+            try { await capTTS.speak({ text: cleanText, lang: code, rate, pitch: 1.05, volume: vol, category: 'ambient' }); return; } catch (err) {}
           }
         }
-
-        // 2. Desktop / Mobile Browser Fallback
         if ('speechSynthesis' in window) {
           try {
             window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance(String(text));
-            utter.lang = langCode;
-            utter.rate = 0.88;
-            utter.pitch = 1.15;
-            const prefix = langCode.split('-')[0];
+            const utter = new SpeechSynthesisUtterance(cleanText);
+            utter.lang = targetLang; utter.rate = rate; utter.pitch = 1.08; utter.volume = vol;
+            const prefix = targetLang.split('-')[0];
             const match = this.voices.find(v => v.lang && v.lang.toLowerCase().startsWith(prefix));
             if (match) utter.voice = match;
             window.speechSynthesis.speak(utter);
           } catch (e) {}
         }
       }
-
       async listenOnce(langCode, onResult, onError) {
-        // 1. Native Android Capacitor SpeechRecognition Plugin
         const capSR = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SpeechRecognition;
         if (capSR) {
           try {
             const perm = await capSR.checkPermissions();
-            if (perm.speechRecognition !== 'granted') {
-              await capSR.requestPermissions();
-            }
-            const res = await capSR.start({
-              language: langCode,
-              maxResults: 3,
-              popup: false,
-              partialResults: false
-            });
-            if (res && res.matches && res.matches.length > 0) {
-              onResult(res.matches[0]);
-            } else {
-              onError('no-speech');
-            }
+            if (perm.speechRecognition !== 'granted') await capSR.requestPermissions();
+            const res = await capSR.start({ language: langCode.startsWith('ur') ? 'ur-IN' : langCode, maxResults: 3, popup: false, partialResults: false });
+            if (res && res.matches && res.matches.length > 0) onResult(res.matches[0]); else onError('no-speech');
             return;
-          } catch (err) {
-            onError(err);
-            return;
-          }
+          } catch (err) { onError(err); return; }
         }
-
-        // 2. Browser Web Speech API Fallback
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) {
-          onError('unsupported');
-          return;
-        }
+        if (!SR) { onError('unsupported'); return; }
         try {
-          const rec = new SR();
-          rec.lang = langCode;
-          rec.interimResults = false;
-          rec.maxAlternatives = 3;
-          rec.onresult = (e) => {
-            const spoken = e.results[0][0].transcript;
-            onResult(spoken);
-          };
-          rec.onerror = (e) => onError(e.error);
-          rec.start();
-        } catch (err) {
-          onError(err);
-        }
+          const rec = new SR(); rec.lang = langCode; rec.interimResults = false; rec.maxAlternatives = 3;
+          rec.onresult = (e) => onResult(e.results[0][0].transcript);
+          rec.onerror = (e) => onError(e.error); rec.start();
+        } catch (err) { onError(err); }
       }
     }
 
     const audio = new VoiceAndSoundEngine();
 
-    // ==================== GAME STATE ====================
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const popCountEl = document.getElementById('popCount');
-    const langBtn = document.getElementById('langBtn');
-    const modeBtn = document.getElementById('modeBtn');
-    const playBtn = document.getElementById('playBtn');
-    const questBtn = document.getElementById('questBtn');
-    const speedBtn = document.getElementById('speedBtn');
-    const lockBtn = document.getElementById('lockBtn');
-    const quizBtn = document.getElementById('quizBtn');
-    const repeatBtn = document.getElementById('repeatBtn');
-    const questBanner = document.getElementById('questBanner');
-    const echoBubble = document.getElementById('echoBubble');
+    // ==================== GAME STATE & CONTROLS ====================
+    const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
+    const popCountEl = document.getElementById('popCount'), langBtn = document.getElementById('langBtn'), modeBtn = document.getElementById('modeBtn');
+    const playBtn = document.getElementById('playBtn'), questBtn = document.getElementById('questBtn'), focusBtn = document.getElementById('focusBtn');
+    const speedBtn = document.getElementById('speedBtn'), lockBtn = document.getElementById('lockBtn'), lockNotice = document.getElementById('lockNotice');
+    const quizBtn = document.getElementById('quizBtn'), repeatBtn = document.getElementById('repeatBtn'), traceBtn = document.getElementById('traceBtn');
+    const stickerBtn = document.getElementById('stickerBtn'), stickerCountEl = document.getElementById('stickerCount'), nightBtn = document.getElementById('nightBtn');
+    const questBanner = document.getElementById('questBanner'), echoBubble = document.getElementById('echoBubble');
 
     const LANG_KEYS = ['en', 'ur', 'ar'];
-    let langIdx = 0;
-    let modeIdx = 0; // 0: Mix, 1: Letters, 2: Numbers, 3: Colors, 4: Shapes, 5: Math
-    let playIdx = 0; // 0: Tap, 1: Shoot, 2: Tickle & Talk
-    let questEnabled = false;
-    let fastSpeed = false;
-    let isLocked = false;
-    let popCount = 0;
+    let langIdx = 0, modeIdx = 0, playIdx = 0, questEnabled = false, fastSpeed = false, isLocked = false, nightMode = false, popCount = 0;
+    let unlockedStickers = 1;
+    try { const s = parseInt(localStorage.getItem('bp_stickers') || '1', 10); if (s >= 1 && s <= STICKER_CATALOG.length) unlockedStickers = s; } catch (e) {}
+    stickerCountEl.textContent = unlockedStickers;
+    function unlockNextSticker() {
+      if (unlockedStickers < STICKER_CATALOG.length) { unlockedStickers++; stickerCountEl.textContent = unlockedStickers; try { localStorage.setItem('bp_stickers', String(unlockedStickers)); } catch (e) {} }
+    }
 
-    let W = window.innerWidth || 360;
-    let H = window.innerHeight || 640;
-
-    const balloons = [];
-    const particles = [];
-    const darts = [];
-    const flashcards = [];
-    const speechBubbles = [];
+    let focusSet = new Set(), W = window.innerWidth || 360, H = window.innerHeight || 640;
+    const balloons = [], particles = [], darts = [], flashcards = [], swipeTrail = [];
+    const bgStars = Array.from({ length: 35 }, () => ({ x: Math.random(), y: Math.random() * 0.7, r: 1 + Math.random() * 2, phase: Math.random() * Math.PI * 2 }));
     const letterRotation = {};
-    let questTarget = null;
-    let launcherAngle = -Math.PI / 2;
-    let lastSpawn = 0;
+    let questTarget = null, launcherAngle = -Math.PI / 2, lastSpawn = 0;
 
     function resizeCanvas() {
-      const nw = window.innerWidth || document.documentElement.clientWidth || 360;
-      const nh = window.innerHeight || document.documentElement.clientHeight || 640;
-      if (nw > 0 && nh > 0) {
-        W = canvas.width = nw;
-        H = canvas.height = nh;
-      }
+      const nw = window.innerWidth || document.documentElement.clientWidth || 360, nh = window.innerHeight || document.documentElement.clientHeight || 640;
+      if (nw > 0 && nh > 0) { W = canvas.width = nw; H = canvas.height = nh; }
     }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    if (window.ResizeObserver) {
-      new ResizeObserver(resizeCanvas).observe(document.body);
-    }
-
-    function curLang() {
-      return DATA[LANG_KEYS[langIdx]];
-    }
+    resizeCanvas(); window.addEventListener('resize', resizeCanvas);
+    if (window.ResizeObserver) new ResizeObserver(resizeCanvas).observe(document.body);
+    function curLang() { return DATA[LANG_KEYS[langIdx]]; }
 
     function updateHUD() {
       const L = curLang();
-      langBtn.textContent = L.label;
-      modeBtn.textContent = L.modes[modeIdx];
-      playBtn.textContent = L.plays[playIdx];
-      questBtn.textContent = questEnabled ? L.questOn : L.questOff;
-      speedBtn.textContent = fastSpeed ? L.normal : L.slow;
-      quizBtn.textContent = L.quizBtn;
-      repeatBtn.textContent = L.repeatBtn;
+      langBtn.textContent = L.label; modeBtn.textContent = L.modes[modeIdx]; playBtn.textContent = L.plays[playIdx];
+      questBtn.textContent = questEnabled ? L.questOn : L.questOff; speedBtn.textContent = fastSpeed ? L.normal : L.slow;
+      quizBtn.textContent = L.quizBtn; repeatBtn.textContent = L.repeatBtn; traceBtn.textContent = L.traceBtn;
+      nightBtn.textContent = nightMode ? L.nightLabel : L.dayLabel;
+      focusBtn.textContent = focusSet.size > 0 ? `🔍 Focus: ${focusSet.size}` : '🔍 Focus: All';
       document.getElementById('quizTitle').textContent = L.quizPrompt;
     }
 
-    // ==================== BALLOON FACTORY ====================
     const PALETTE = ['#ff5252', '#ff9800', '#ffd740', '#69f0ae', '#40c4ff', '#e040fb', '#ff4081'];
-
     function createBalloonData() {
       const L = curLang();
-      let activeType = modeIdx;
-      if (modeIdx === 0) {
-        activeType = Math.random() < 0.68 ? 1 : 2;
-      }
-
+      let activeType = modeIdx === 0 ? (Math.random() < 0.68 ? 1 : 2) : modeIdx;
       if (activeType === 1) {
-        const keys = Object.keys(L.letters);
-        const ch = keys[Math.floor(Math.random() * keys.length)];
-        const rotKey = `${LANG_KEYS[langIdx]}_${ch}`;
-        const idx = (letterRotation[rotKey] || 0) % L.letters[ch].length;
-        letterRotation[rotKey] = idx + 1;
+        let keys = Object.keys(L.letters);
+        if (focusSet.size > 0) { const f = keys.filter(k => focusSet.has(k)); if (f.length > 0) keys = f; }
+        const ch = keys[Math.floor(Math.random() * keys.length)], rotKey = `${LANG_KEYS[langIdx]}_${ch}`;
+        const idx = (letterRotation[rotKey] || 0) % L.letters[ch].length; letterRotation[rotKey] = idx + 1;
         const item = L.letters[ch][idx];
-        return {
-          kind: 'letter',
-          main: ch,
-          word: item.w,
-          emoji: item.e,
-          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-          speakText: L.forWord(ch, item.w),
-          questKey: `letter_${ch}`
-        };
+        return { kind: 'letter', main: ch, word: item.w, ph: item.ph || item.w, emoji: item.e, color: PALETTE[Math.floor(Math.random() * PALETTE.length)], speakText: L.forWord(ch, item.ph || item.w), questKey: `letter_${ch}` };
       }
-
       if (activeType === 2) {
-        const numObj = L.numbers[Math.floor(Math.random() * L.numbers.length)];
-        return {
-          kind: 'number',
-          main: numObj.d,
-          word: numObj.w,
-          emoji: numObj.e,
-          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-          speakText: `${numObj.d}... ${numObj.w}!`,
-          questKey: `num_${numObj.d}`
-        };
+        let nums = L.numbers;
+        if (focusSet.size > 0) { const f = nums.filter(n => focusSet.has(n.d)); if (f.length > 0) nums = f; }
+        const numObj = nums[Math.floor(Math.random() * nums.length)], numSpoken = numObj.n !== undefined ? numObj.n : numObj.d;
+        return { kind: 'number', main: numObj.d, word: numObj.w, ph: numObj.ph || numObj.w, emoji: numObj.e, color: PALETTE[Math.floor(Math.random() * PALETTE.length)], speakText: `${numSpoken}... ${numObj.ph || numObj.w}!`, questKey: `num_${numObj.d}` };
       }
-
       if (activeType === 3) {
         const col = L.colors[Math.floor(Math.random() * L.colors.length)];
-        return {
-          kind: 'color',
-          main: col.name,
-          word: col.name,
-          emoji: col.e,
-          color: col.hex,
-          speakText: col.name,
-          questKey: `col_${col.name}`
-        };
+        return { kind: 'color', main: col.name, word: col.name, ph: col.ph || col.name, emoji: col.e, color: col.hex, speakText: col.ph || col.name, questKey: `col_${col.name}` };
       }
-
       if (activeType === 4) {
         const shp = L.shapes[Math.floor(Math.random() * L.shapes.length)];
-        return {
-          kind: 'shape',
-          shapeId: shp.id,
-          main: shp.name,
-          word: shp.name,
-          emoji: shp.e,
-          color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-          speakText: shp.name,
-          questKey: `shp_${shp.id}`
-        };
+        return { kind: 'shape', shapeId: shp.id, main: shp.name, word: shp.name, ph: shp.ph || shp.name, emoji: shp.e, color: PALETTE[Math.floor(Math.random() * PALETTE.length)], speakText: shp.ph || shp.name, questKey: `shp_${shp.id}` };
       }
-
-      // 5: Visual Math
-      const a = 1 + Math.floor(Math.random() * 3);
-      const b = 1 + Math.floor(Math.random() * 2);
-      const sum = a + b;
-      const fruits = ['🍎', '🍌', '⭐', '🍓', '🍊'];
-      const fruit = fruits[Math.floor(Math.random() * fruits.length)];
-      const sumObj = L.numbers[sum] || { d: String(sum), w: String(sum) };
-      const aDisp = (L.numbers[a] && L.numbers[a].d) || a;
-      const bDisp = (L.numbers[b] && L.numbers[b].d) || b;
-      return {
-        kind: 'math',
-        a, b, sum, fruit,
-        main: `${aDisp} + ${bDisp}`,
-        word: `${aDisp} + ${bDisp} = ${sumObj.d}`,
-        emoji: fruit.repeat(sum),
-        color: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-        speakText: L.mathSpeak(aDisp, bDisp, sumObj.d, sumObj.w),
-        questKey: `math_${a}_${b}`
-      };
+      if (activeType === 5) {
+        const a = 1 + Math.floor(Math.random() * 3), b = 1 + Math.floor(Math.random() * 2), sum = a + b;
+        const fruits = ['🍎', '🍌', '⭐', '🍓', '🍊'], fruit = fruits[Math.floor(Math.random() * fruits.length)];
+        const sumObj = L.numbers[sum] || { d: String(sum), w: String(sum), ph: String(sum) };
+        const aDisp = (L.numbers[a] && L.numbers[a].d) || a, bDisp = (L.numbers[b] && L.numbers[b].d) || b;
+        const aSpk = LANG_KEYS[langIdx] === 'ur' ? a : aDisp, bSpk = LANG_KEYS[langIdx] === 'ur' ? b : bDisp, sSpk = LANG_KEYS[langIdx] === 'ur' ? sum : sumObj.d;
+        return { kind: 'math', a, b, sum, fruit, main: `${aDisp} + ${bDisp}`, word: `${aDisp} + ${bDisp} = ${sumObj.d}`, ph: sumObj.ph || sumObj.w, emoji: fruit.repeat(sum), color: PALETTE[Math.floor(Math.random() * PALETTE.length)], speakText: L.mathSpeak(aSpk, bSpk, sSpk, sumObj.ph || sumObj.w), questKey: `math_${a}_${b}` };
+      }
+      if (activeType === 6) {
+        const av = L.animalsVehicles[Math.floor(Math.random() * L.animalsVehicles.length)];
+        return { kind: 'animal', sfx: av.sfx, main: av.w, word: av.w, ph: av.ph || av.w, emoji: av.e, color: PALETTE[Math.floor(Math.random() * PALETTE.length)], speakText: av.ph || av.w, questKey: `av_${av.w}` };
+      }
+      const fr = L.fruits[Math.floor(Math.random() * L.fruits.length)];
+      return { kind: 'fruit', main: fr.w, word: fr.w, ph: fr.ph || fr.w, emoji: fr.e, color: PALETTE[Math.floor(Math.random() * PALETTE.length)], speakText: fr.ph || fr.w, questKey: `fr_${fr.w}` };
     }
 
     function spawnBalloon(initialY) {
-      const r = Math.min(W, H) < 500 ? 46 : 56;
-      const data = createBalloonData();
-      const b = {
-        ...data,
-        x: r + 16 + Math.random() * Math.max(40, W - (r + 16) * 2),
-        y: typeof initialY === 'number' ? initialY : H + r + 20,
-        r,
-        baseR: r,
-        vy: (fastSpeed ? 1.55 : 0.85) + Math.random() * 0.45,
-        wobblePhase: Math.random() * Math.PI * 2,
-        tickles: 0,
-        shake: 0
-      };
-      balloons.push(b);
-      if (questEnabled && !questTarget) {
-        pickNewQuest();
-      }
+      const r = Math.min(W, H) < 500 ? 45 : 55, data = createBalloonData();
+      const isFruitArcade = (modeIdx === 7), isTopDownShoot = (playIdx === 2), baseSpd = nightMode ? 0.55 : (fastSpeed ? 1.65 : 0.92);
+      let startY, vy, vx = 0, gravity = 0;
+      if (isFruitArcade) { startY = H + r; vy = -(9.5 + Math.random() * 3.5); vx = (Math.random() - 0.5) * 4.2; gravity = 0.16; }
+      else if (isTopDownShoot) { startY = typeof initialY === 'number' ? initialY : -r - 20; vy = baseSpd + Math.random() * 0.35; }
+      else { startY = typeof initialY === 'number' ? initialY : H + r + 20; vy = -(baseSpd + Math.random() * 0.35); }
+      balloons.push({ ...data, x: r + 20 + Math.random() * Math.max(40, W - (r + 20) * 2), y: startY, r, baseR: r, vx, vy, gravity, wobblePhase: Math.random() * Math.PI * 2, shake: 0, burstTimer: null });
+      if (questEnabled && !questTarget) pickNewQuest();
     }
 
     function pickNewQuest() {
-      if (!questEnabled || balloons.length === 0) {
-        questBanner.style.display = 'none';
-        questTarget = null;
-        return;
-      }
+      if (!questEnabled || balloons.length === 0) { questBanner.style.display = 'none'; questTarget = null; return; }
       const pick = balloons[Math.floor(Math.random() * balloons.length)];
-      questTarget = { key: pick.questKey, label: `${pick.main} ${pick.emoji}`, speak: curLang().findPrompt(pick.word) };
-      questBanner.textContent = `🎯 ${questTarget.label}`;
-      questBanner.style.display = 'block';
+      questTarget = { key: pick.questKey, label: `${pick.main} ${pick.emoji}`, speak: curLang().findPrompt(pick.ph || pick.word) };
+      questBanner.textContent = `🎯 ${questTarget.label}`; questBanner.style.display = 'block';
       audio.speak(questTarget.speak, curLang().ttsLang);
     }
+    questBanner.addEventListener('click', () => { if (questTarget) audio.speak(questTarget.speak, curLang().ttsLang); });
 
-    questBanner.addEventListener('click', () => {
-      if (questTarget) audio.speak(questTarget.speak, curLang().ttsLang);
-    });
-
-    // ==================== POP, TICKLE & CELEBRATION ====================
-    function createBurst(x, y, color, count = 22) {
+    function createBurst(x, y, color, count = 24) {
       for (let i = 0; i < count; i++) {
-        const ang = (Math.PI * 2 * i) / count + Math.random() * 0.3;
-        const spd = 2 + Math.random() * 5.5;
-        particles.push({
-          x, y,
-          vx: Math.cos(ang) * spd,
-          vy: Math.sin(ang) * spd - 1.5,
-          size: 5 + Math.random() * 6,
-          color: i % 2 === 0 ? color : PALETTE[i % PALETTE.length],
-          life: 1
-        });
+        const ang = (Math.PI * 2 * i) / count + Math.random() * 0.3, spd = 2.2 + Math.random() * 5.8;
+        particles.push({ x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd - 1.5, size: 5 + Math.random() * 6, color: i % 2 === 0 ? color : PALETTE[i % PALETTE.length], life: 1 });
       }
     }
 
     function popBalloon(idx) {
-      const b = balloons[idx];
-      if (!b) return;
+      const b = balloons[idx]; if (!b) return;
+      if (b.burstTimer) clearTimeout(b.burstTimer);
       balloons.splice(idx, 1);
-
-      popCount++;
-      popCountEl.textContent = popCount;
-      audio.playPopSound();
-      createBurst(b.x, b.y, b.color, 26);
-
-      // Big Centerpiece Flashcard
-      flashcards.length = 0;
-      flashcards.push({
-        main: b.main,
-        word: b.word,
-        emoji: b.emoji,
-        color: b.color,
-        life: 1.0
-      });
-
+      popCount++; popCountEl.textContent = popCount;
+      audio.playPopSound(); createBurst(b.x, b.y, b.color, 28);
+      flashcards.length = 0; flashcards.push({ main: b.main, word: b.word, emoji: b.emoji, color: b.color, life: 1.0 });
       const L = curLang();
-      if (popCount % 10 === 0) {
-        audio.playFanfare();
-        createBurst(W * 0.3, H * 0.35, '#ffd740', 35);
-        createBurst(W * 0.7, H * 0.35, '#ff4081', 35);
-        audio.speak(`${b.speakText} ${L.cheer}`, L.ttsLang);
-      } else {
-        audio.speak(b.speakText, L.ttsLang);
-      }
-
-      if (questEnabled && questTarget && b.questKey === questTarget.key) {
-        createBurst(b.x, b.y, '#ffd740', 32);
-        questTarget = null;
-        setTimeout(pickNewQuest, 900);
-      }
+      if (b.sfx) { audio.playAnimalOrVehicleSFX(b.sfx); setTimeout(() => audio.speak(b.speakText, L.ttsLang), 420); }
+      else if (popCount % 10 === 0) { unlockNextSticker(); audio.playFanfare(); createBurst(W * 0.3, H * 0.35, '#ffd740', 35); createBurst(W * 0.7, H * 0.35, '#ff4081', 35); audio.speak(`${b.speakText} ${L.cheerPh}`, L.ttsLang); }
+      else audio.speak(b.speakText, L.ttsLang);
+      if (questEnabled && questTarget && b.questKey === questTarget.key) { createBurst(b.x, b.y, '#ffd740', 32); questTarget = null; setTimeout(pickNewQuest, 900); }
     }
 
-    function tickleBalloon(idx) {
-      const b = balloons[idx];
-      if (!b) return;
-      b.tickles++;
-      b.shake = 1.0;
-      b.r = Math.min(b.baseR * 1.48, b.r + 9);
-      audio.playBoingSound();
-
-      const L = curLang();
-      const line = L.tickleLines[(b.tickles - 1) % L.tickleLines.length];
-
-      speechBubbles.length = 0;
-      speechBubbles.push({
-        x: Math.min(Math.max(b.x, 120), W - 120),
-        y: Math.max(b.y - b.r - 22, 95),
-        text: line,
-        life: 1.0
-      });
-
-      if (b.tickles >= 4) {
-        popBalloon(idx);
-      } else {
-        audio.speak(line, L.ttsLang);
-      }
+    function triggerRubberTickleAndBurst(idx) {
+      const b = balloons[idx]; if (!b || b.burstTimer) return;
+      b.shake = 1.0; b.r = b.baseR * 1.38; audio.playRubberRubSound();
+      b.burstTimer = setTimeout(() => { const ci = balloons.indexOf(b); if (ci !== -1) popBalloon(ci); }, 280);
     }
 
-    // ==================== INPUT HANDLING (TAP / SHOOT / RUB) ====================
-    let isPointerDown = false;
-    let lastRubTime = 0;
-
+    let isPointerDown = false, activePointerId = null;
     function handlePointerAction(x, y, isMove) {
       audio.unlock();
-
-      if (playIdx === 1) {
-        // Shoot Mode
+      if (modeIdx === 7) {
+        swipeTrail.push({ x, y, life: 1.0 });
+        for (let i = balloons.length - 1; i >= 0; i--) if (Math.hypot(x - balloons[i].x, y - balloons[i].y) <= balloons[i].r * 1.15) popBalloon(i);
+        return;
+      }
+      if (playIdx === 1 || playIdx === 2) {
         if (!isMove) {
-          const lx = W / 2;
-          const ly = H - 36;
+          const isTop = (playIdx === 2), lx = W / 2, ly = isTop ? 72 : H - 36;
           launcherAngle = Math.atan2(y - ly, x - lx);
-          const speed = 13;
-          darts.push({
-            x: lx,
-            y: ly,
-            vx: Math.cos(launcherAngle) * speed,
-            vy: Math.sin(launcherAngle) * speed
-          });
+          darts.push({ x: lx, y: ly, vx: Math.cos(launcherAngle) * 14, vy: Math.sin(launcherAngle) * 14 });
           audio.playBoingSound();
         }
         return;
       }
-
       for (let i = balloons.length - 1; i >= 0; i--) {
         const b = balloons[i];
-        const dist = Math.hypot(x - b.x, y - b.y);
-        if (dist <= b.r * 1.15) {
-          if (playIdx === 2) {
-            // Tickle & Talk Mode
-            const now = Date.now();
-            if (!isMove || now - lastRubTime > 650) {
-              lastRubTime = now;
-              tickleBalloon(i);
-            }
-          } else if (!isMove) {
-            // Standard Tap Mode
-            popBalloon(i);
-          }
+        if (Math.hypot(x - b.x, y - b.y) <= b.r * 1.15) {
+          if (playIdx === 3) triggerRubberTickleAndBurst(i);
+          else if (!isMove) popBalloon(i);
           break;
         }
       }
     }
 
-    canvas.addEventListener('pointerdown', (e) => {
-      isPointerDown = true;
-      handlePointerAction(e.clientX, e.clientY, false);
-    });
+    canvas.addEventListener('pointerdown', (e) => { if (activePointerId !== null) return; activePointerId = e.pointerId; isPointerDown = true; handlePointerAction(e.clientX, e.clientY, false); });
+    canvas.addEventListener('pointermove', (e) => { if (!isPointerDown || e.pointerId !== activePointerId) return; handlePointerAction(e.clientX, e.clientY, true); });
+    ['pointerup', 'pointercancel'].forEach(ev => window.addEventListener(ev, (e) => { if (e.pointerId === activePointerId) { isPointerDown = false; activePointerId = null; } }));
 
-    canvas.addEventListener('pointermove', (e) => {
-      if (isPointerDown) {
-        handlePointerAction(e.clientX, e.clientY, true);
-      }
-    });
+    function resetBalloons() { balloons.length = 0; questTarget = null; for (let i = 0; i < 5; i++) spawnBalloon(H * (0.25 + i * 0.15)); }
+    langBtn.addEventListener('click', () => { langIdx = (langIdx + 1) % LANG_KEYS.length; focusSet.clear(); updateHUD(); resetBalloons(); });
+    modeBtn.addEventListener('click', () => { modeIdx = (modeIdx + 1) % curLang().modes.length; updateHUD(); resetBalloons(); });
+    playBtn.addEventListener('click', () => { playIdx = (playIdx + 1) % curLang().plays.length; updateHUD(); resetBalloons(); });
+    questBtn.addEventListener('click', () => { questEnabled = !questEnabled; updateHUD(); if (questEnabled) pickNewQuest(); else { questTarget = null; questBanner.style.display = 'none'; } });
+    speedBtn.addEventListener('click', () => { fastSpeed = !fastSpeed; updateHUD(); });
+    nightBtn.addEventListener('click', () => { nightMode = !nightMode; document.body.classList.toggle('night-mode', nightMode); updateHUD(); });
 
-    window.addEventListener('pointerup', () => {
-      isPointerDown = false;
-    });
-
-    // ==================== HUD CONTROLS & PARENT LOCK ====================
-    langBtn.addEventListener('click', () => {
-      langIdx = (langIdx + 1) % LANG_KEYS.length;
-      balloons.length = 0;
-      questTarget = null;
-      updateHUD();
-      for (let i = 0; i < 5; i++) spawnBalloon(H * (0.25 + i * 0.16));
-    });
-
-    modeBtn.addEventListener('click', () => {
-      modeIdx = (modeIdx + 1) % curLang().modes.length;
-      balloons.length = 0;
-      questTarget = null;
-      updateHUD();
-      for (let i = 0; i < 5; i++) spawnBalloon(H * (0.25 + i * 0.16));
-    });
-
-    playBtn.addEventListener('click', () => {
-      playIdx = (playIdx + 1) % curLang().plays.length;
-      updateHUD();
-    });
-
-    questBtn.addEventListener('click', () => {
-      questEnabled = !questEnabled;
-      updateHUD();
-      if (questEnabled) pickNewQuest();
-      else {
-        questTarget = null;
-        questBanner.style.display = 'none';
-      }
-    });
-
-    speedBtn.addEventListener('click', () => {
-      fastSpeed = !fastSpeed;
-      updateHUD();
-    });
-
-    // 2-Second Hold Parent Lock
     let lockTimer = null;
     lockBtn.addEventListener('pointerdown', () => {
       lockTimer = setTimeout(() => {
-        isLocked = !isLocked;
-        lockBtn.textContent = isLocked ? '🔒' : '🔓';
-        document.querySelectorAll('.lockable').forEach(el => {
-          el.classList.toggle('locked', isLocked);
+        isLocked = !isLocked; lockBtn.textContent = isLocked ? '🔒' : '🔓';
+        lockNotice.style.display = isLocked ? 'block' : 'none';
+        document.querySelectorAll('.lockable').forEach(el => el.classList.toggle('locked', isLocked));
+        if (window.AndroidKiosk && typeof window.AndroidKiosk.setChildLock === 'function') window.AndroidKiosk.setChildLock(isLocked);
+      }, 1500);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => lockBtn.addEventListener(ev, () => clearTimeout(lockTimer)));
+
+    document.querySelectorAll('[data-close]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-close'); document.getElementById(id).style.display = 'none';
+        if (id === 'focusModal') { updateHUD(); resetBalloons(); }
+      });
+    });
+
+    // ==================== STUDY & CONVERSATION MODALS ====================
+    document.getElementById('bodyBtn').addEventListener('click', () => {
+      const grid = document.getElementById('bodyGrid'); grid.innerHTML = '';
+      BODY_PARTS.forEach(bp => {
+        const tile = document.createElement('div'); tile.className = 'body-tile';
+        tile.innerHTML = `<div class="em">${bp.e}</div><div class="en">${bp.en}</div><div class="tr">${bp.ur} | ${bp.ar}</div>`;
+        tile.addEventListener('click', () => {
+          const lang = LANG_KEYS[langIdx];
+          if (lang === 'ur') audio.speak(bp.urPh, 'ur-IN');
+          else if (lang === 'ar') audio.speak(bp.ar, 'ar-SA');
+          else audio.speak(`${bp.en}... ${bp.urPh}... ${bp.ar}`, 'en-US');
         });
-      }, 1600);
-    });
-    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => {
-      lockBtn.addEventListener(ev, () => clearTimeout(lockTimer));
-    });
-
-    // ==================== LIVE VOICE REPEAT-BACK ====================
-    repeatBtn.addEventListener('click', () => {
-      const L = curLang();
-      repeatBtn.classList.add('listening');
-      repeatBtn.textContent = L.listening;
-
-      audio.listenOnce(
-        L.srLang,
-        (spoken) => {
-          repeatBtn.classList.remove('listening');
-          repeatBtn.textContent = L.repeatBtn;
-          echoBubble.textContent = `🦜 "${spoken}"`;
-          echoBubble.style.display = 'block';
-          audio.speak(spoken, L.ttsLang);
-          setTimeout(() => { echoBubble.style.display = 'none'; }, 3500);
-        },
-        () => {
-          repeatBtn.classList.remove('listening');
-          repeatBtn.textContent = L.repeatBtn;
-          echoBubble.textContent = '🎤 Tap again & speak loudly!';
-          echoBubble.style.display = 'block';
-          setTimeout(() => { echoBubble.style.display = 'none'; }, 2500);
-        }
-      );
+        grid.appendChild(tile);
+      });
+      document.getElementById('bodyModal').style.display = 'flex';
     });
 
-    // ==================== ASK & ANSWER QUIZ SECTION ====================
-    const quizModal = document.getElementById('quizModal');
-    const quizEmoji = document.getElementById('quizEmoji');
-    const quizStatus = document.getElementById('quizStatus');
-    const quizSpeakBtn = document.getElementById('quizSpeakBtn');
-    const quizAskBtn = document.getElementById('quizAskBtn');
-    const quizNextBtn = document.getElementById('quizNextBtn');
-    const quizCloseBtn = document.getElementById('quizCloseBtn');
-    let currentQuizItem = null;
-
-    function loadQuizQuestion() {
-      const L = curLang();
-      const keys = Object.keys(L.letters);
-      const rk = keys[Math.floor(Math.random() * keys.length)];
-      const items = L.letters[rk];
-      currentQuizItem = items[Math.floor(Math.random() * items.length)];
-      quizEmoji.textContent = currentQuizItem.e;
-      quizStatus.textContent = L.quizHint;
-      audio.speak(L.quizPrompt, L.ttsLang);
+    let activeScienceTab = 'Biology';
+    function renderScienceList() {
+      const list = document.getElementById('scienceList'), q = document.getElementById('scienceSearch').value.toLowerCase().trim();
+      list.innerHTML = '';
+      SCIENCE_VOCAB[activeScienceTab].filter(([t, , d]) => !q || t.toLowerCase().includes(q) || d.toLowerCase().includes(q)).forEach(([term, em, desc, ex]) => {
+        const card = document.createElement('div'); card.className = 'study-card';
+        card.innerHTML = `<h4>${em} ${term}</h4><p>${desc}</p><div class="ex">Example: ${ex}</div>`;
+        card.addEventListener('click', () => audio.speak(`${term}. ${desc} ${ex}`, 'en-US'));
+        list.appendChild(card);
+      });
     }
+    document.getElementById('scienceBtn').addEventListener('click', () => {
+      const tabs = document.getElementById('scienceTabs'); tabs.innerHTML = '';
+      ['Biology', 'Zoology', 'Electronics', 'Electrical'].forEach(subj => {
+        const b = document.createElement('button'); b.className = 'tab-btn' + (subj === activeScienceTab ? ' active' : ''); b.textContent = subj;
+        b.addEventListener('click', () => { activeScienceTab = subj; tabs.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); renderScienceList(); });
+        tabs.appendChild(b);
+      });
+      renderScienceList(); document.getElementById('scienceModal').style.display = 'flex';
+    });
+    document.getElementById('scienceSearch').addEventListener('input', renderScienceList);
 
+    function renderTransList() {
+      const list = document.getElementById('transList'), q = document.getElementById('transSearch').value.toLowerCase().trim();
+      list.innerHTML = '';
+      TRANSLATIONS.filter(t => !q || t.en.toLowerCase().includes(q) || t.ur.includes(q) || t.ar.includes(q)).forEach(t => {
+        const card = document.createElement('div'); card.className = 'study-card';
+        card.innerHTML = `<h4>🇬🇧 ${t.en}  →  🇵🇰/🇮🇳 ${t.ur}  →  🇸🇦 ${t.ar}</h4><p>Tap to hear English, Urdu, and Arabic</p>`;
+        card.addEventListener('click', async () => { await audio.speak(t.en, 'en-US'); setTimeout(() => audio.speak(t.urPh, 'ur-IN'), 950); setTimeout(() => audio.speak(t.ar, 'ar-SA'), 2000); });
+        list.appendChild(card);
+      });
+    }
+    document.getElementById('transBtn').addEventListener('click', () => { renderTransList(); document.getElementById('transModal').style.display = 'flex'; });
+    document.getElementById('transSearch').addEventListener('input', renderTransList);
+
+    let wordsOffset = 0;
+    function renderWordsList() {
+      const list = document.getElementById('wordsList'), q = document.getElementById('wordsSearch').value.toLowerCase().trim();
+      const filtered = q ? DAILY_WORDS.filter(([w, m]) => w.toLowerCase().includes(q) || m.toLowerCase().includes(q)) : DAILY_WORDS;
+      const slice = filtered.slice(wordsOffset, wordsOffset + 50);
+      document.getElementById('wordsPageInfo').textContent = `${wordsOffset + 1} - ${Math.min(wordsOffset + 50, filtered.length)} of ${filtered.length}`;
+      list.innerHTML = '';
+      slice.forEach(([w, m, s], i) => {
+        const card = document.createElement('div'); card.className = 'study-card';
+        card.innerHTML = `<h4>${wordsOffset + i + 1}. ${w}</h4><p><strong>Meaning:</strong> ${m}</p><div class="ex">Sentence: "${s}"</div>`;
+        card.addEventListener('click', () => audio.speak(`${w}. ${s}`, 'en-US'));
+        list.appendChild(card);
+      });
+    }
+    document.getElementById('wordsBtn').addEventListener('click', () => { wordsOffset = 0; renderWordsList(); document.getElementById('wordsModal').style.display = 'flex'; });
+    document.getElementById('wordsSearch').addEventListener('input', () => { wordsOffset = 0; renderWordsList(); });
+    document.getElementById('wordsPrevBtn').addEventListener('click', () => { wordsOffset = Math.max(0, wordsOffset - 50); renderWordsList(); });
+    document.getElementById('wordsNextBtn').addEventListener('click', () => { if (wordsOffset + 50 < DAILY_WORDS.length) { wordsOffset += 50; renderWordsList(); } });
+
+    let grammarView = 'rules';
+    function renderGrammarHub() {
+      const list = document.getElementById('grammarList'); list.innerHTML = '';
+      if (grammarView === 'rules') {
+        GRAMMAR_RULES.forEach(r => {
+          const card = document.createElement('div'); card.className = 'study-card';
+          card.innerHTML = `<h4>${r.title}</h4><p>${r.rule}</p><p><strong>Structure:</strong> ${r.formula}</p><div class="ex">${r.ex}</div>`;
+          card.addEventListener('click', () => audio.speak(`${r.title}. ${r.rule}`, 'en-US'));
+          list.appendChild(card);
+        });
+      } else {
+        CONVERSATION_USAGE.forEach(u => {
+          const card = document.createElement('div'); card.className = 'study-card';
+          card.innerHTML = `<h4>💬 ${u.word} — <small>${u.role}</small></h4><div class="ex">${u.diag}</div>`;
+          card.addEventListener('click', () => audio.speak(u.diag, 'en-US'));
+          list.appendChild(card);
+        });
+      }
+    }
+    document.getElementById('grammarBtn').addEventListener('click', () => { renderGrammarHub(); document.getElementById('grammarModal').style.display = 'flex'; });
+    document.getElementById('gramTabRules').addEventListener('click', (e) => { grammarView = 'rules'; e.target.classList.add('active'); document.getElementById('gramTabConv').classList.remove('active'); renderGrammarHub(); });
+    document.getElementById('gramTabConv').addEventListener('click', (e) => { grammarView = 'conv'; e.target.classList.add('active'); document.getElementById('gramTabRules').classList.remove('active'); renderGrammarHub(); });
+
+    // ==================== REPEAT, QUIZ, TRACING, STICKERS & FOCUS ====================
+    repeatBtn.addEventListener('click', () => {
+      const L = curLang(); repeatBtn.classList.add('listening'); repeatBtn.textContent = L.listening;
+      audio.listenOnce(L.srLang, (spoken) => {
+        repeatBtn.classList.remove('listening'); repeatBtn.textContent = L.repeatBtn;
+        echoBubble.textContent = `🦜 "${spoken}"`; echoBubble.style.display = 'block';
+        audio.speak(spoken, L.ttsLang); setTimeout(() => { echoBubble.style.display = 'none'; }, 3500);
+      }, () => {
+        repeatBtn.classList.remove('listening'); repeatBtn.textContent = L.repeatBtn;
+        echoBubble.textContent = '🎤 Tap again & speak loudly!'; echoBubble.style.display = 'block';
+        setTimeout(() => { echoBubble.style.display = 'none'; }, 2500);
+      });
+    });
+
+    const quizModal = document.getElementById('quizModal'), quizEmoji = document.getElementById('quizEmoji'), quizStatus = document.getElementById('quizStatus'), quizSpeakBtn = document.getElementById('quizSpeakBtn');
+    let currentQuizItem = null;
+    function loadQuizQuestion() {
+      const L = curLang(), keys = Object.keys(L.letters), items = L.letters[keys[Math.floor(Math.random() * keys.length)]];
+      currentQuizItem = items[Math.floor(Math.random() * items.length)];
+      quizEmoji.textContent = currentQuizItem.e; quizStatus.textContent = L.quizHint; audio.speak(L.quizPromptPh, L.ttsLang);
+    }
     function celebrateQuizAnswer() {
       if (!currentQuizItem) return;
-      const L = curLang();
-      const reply = L.quizCorrect(currentQuizItem.w);
-      quizStatus.textContent = `🎉 ${reply}`;
-      audio.playFanfare();
-      createBurst(W / 2, H / 2, '#ffd740', 40);
-      audio.speak(reply, L.ttsLang);
+      const L = curLang(); quizStatus.textContent = `🎉 ${L.quizCorrect(currentQuizItem.w)}`;
+      unlockNextSticker(); audio.playFanfare(); createBurst(W / 2, H / 2, '#ffd740', 40);
+      audio.speak(L.quizCorrectPh(currentQuizItem.ph || currentQuizItem.w), L.ttsLang);
     }
-
-    quizBtn.addEventListener('click', () => {
-      quizModal.style.display = 'flex';
-      loadQuizQuestion();
-    });
-
-    quizCloseBtn.addEventListener('click', () => {
-      quizModal.style.display = 'none';
-    });
-
-    quizAskBtn.addEventListener('click', () => {
-      audio.speak(curLang().quizPrompt, curLang().ttsLang);
-    });
-
-    quizNextBtn.addEventListener('click', loadQuizQuestion);
-
-    // Tapping the giant picture also speaks & confirms for younger toddlers
+    quizBtn.addEventListener('click', () => { quizModal.style.display = 'flex'; loadQuizQuestion(); });
+    document.getElementById('quizAskBtn').addEventListener('click', () => audio.speak(curLang().quizPromptPh, curLang().ttsLang));
+    document.getElementById('quizNextBtn').addEventListener('click', loadQuizQuestion);
     quizEmoji.addEventListener('click', celebrateQuizAnswer);
-
     quizSpeakBtn.addEventListener('click', () => {
       if (!currentQuizItem) return;
-      const L = curLang();
-      quizSpeakBtn.classList.add('listening');
-      quizStatus.textContent = L.listening;
-
-      audio.listenOnce(
-        L.srLang,
-        (spoken) => {
-          quizSpeakBtn.classList.remove('listening');
-          const normSpoken = spoken.toLowerCase().trim();
-          const normTarget = currentQuizItem.w.toLowerCase().trim();
-          if (normSpoken.includes(normTarget) || normTarget.includes(normSpoken)) {
-            celebrateQuizAnswer();
-          } else {
-            const retryMsg = L.quizRetry(currentQuizItem.w);
-            quizStatus.textContent = `🗣️ "${spoken}" → ${retryMsg}`;
-            audio.speak(retryMsg, L.ttsLang);
-          }
-        },
-        () => {
-          quizSpeakBtn.classList.remove('listening');
-          quizStatus.textContent = '🎤 Tap "Speak Answer" or tap the picture!';
-        }
-      );
+      const L = curLang(); quizSpeakBtn.classList.add('listening'); quizStatus.textContent = L.listening;
+      audio.listenOnce(L.srLang, (spoken) => {
+        quizSpeakBtn.classList.remove('listening');
+        const ns = spoken.toLowerCase().trim(), nt = currentQuizItem.w.toLowerCase().trim(), np = (currentQuizItem.ph || '').toLowerCase().trim();
+        if (ns.includes(nt) || nt.includes(ns) || (np && ns.includes(np))) celebrateQuizAnswer();
+        else { quizStatus.textContent = `🗣️ "${spoken}" → ${L.quizRetry(currentQuizItem.w)}`; audio.speak(L.quizRetryPh(currentQuizItem.ph || currentQuizItem.w), L.ttsLang); }
+      }, () => { quizSpeakBtn.classList.remove('listening'); quizStatus.textContent = '🎤 Tap "Speak Answer" or tap the picture!'; });
     });
 
-    // ==================== RENDERING ====================
-    function drawShapeIcon(shapeId, x, y, size) {
+    const traceModal = document.getElementById('traceModal'), traceCanvas = document.getElementById('traceCanvas'), tCtx = traceCanvas.getContext('2d'), traceStatus = document.getElementById('traceStatus');
+    let traceChar = 'A', traceWord = 'Apple', tracePh = 'Apple', traceEmoji = '🍎', traceStrokes = 0, traceCelebrated = false, isTracing = false;
+    function loadTraceChar() {
+      const L = curLang(), keys = Object.keys(L.letters); traceChar = keys[Math.floor(Math.random() * keys.length)];
+      const items = L.letters[traceChar], item = items[Math.floor(Math.random() * items.length)];
+      traceWord = item.w; tracePh = item.ph || item.w; traceEmoji = item.e; traceStrokes = 0; traceCelebrated = false;
+      traceStatus.textContent = `${traceChar} — ${traceWord} ${traceEmoji}`; drawTraceGuide(); audio.speak(L.forWord(traceChar, tracePh), L.ttsLang);
+    }
+    function drawTraceGuide() {
+      tCtx.clearRect(0, 0, traceCanvas.width, traceCanvas.height); tCtx.save();
+      tCtx.font = '900 170px sans-serif'; tCtx.textAlign = 'center'; tCtx.textBaseline = 'middle';
+      tCtx.fillStyle = 'rgba(255, 179, 0, 0.22)'; tCtx.strokeStyle = '#ff9800'; tCtx.lineWidth = 4; tCtx.setLineDash([10, 8]);
+      tCtx.fillText(traceChar, traceCanvas.width / 2, traceCanvas.height / 2 + 8); tCtx.strokeText(traceChar, traceCanvas.width / 2, traceCanvas.height / 2 + 8); tCtx.restore();
+    }
+    function paintTracePoint(e) {
+      const rect = traceCanvas.getBoundingClientRect(), x = (e.clientX - rect.left) * (traceCanvas.width / rect.width), y = (e.clientY - rect.top) * (traceCanvas.height / rect.height);
+      tCtx.fillStyle = PALETTE[traceStrokes % PALETTE.length]; tCtx.beginPath(); tCtx.arc(x, y, 16, 0, Math.PI * 2); tCtx.fill(); traceStrokes++;
+      if (traceStrokes > 45 && !traceCelebrated) { traceCelebrated = true; audio.playFanfare(); audio.speak(curLang().forWord(traceChar, tracePh), curLang().ttsLang); traceStatus.textContent = `🎉 ${traceChar} ${traceEmoji} ${traceWord}!`; }
+    }
+    traceCanvas.addEventListener('pointerdown', (e) => { isTracing = true; paintTracePoint(e); });
+    traceCanvas.addEventListener('pointermove', (e) => { if (isTracing) paintTracePoint(e); });
+    window.addEventListener('pointerup', () => { isTracing = false; });
+    traceBtn.addEventListener('click', () => { traceModal.style.display = 'flex'; loadTraceChar(); });
+    document.getElementById('traceClearBtn').addEventListener('click', () => { traceStrokes = 0; traceCelebrated = false; drawTraceGuide(); });
+    document.getElementById('traceNextBtn').addEventListener('click', loadTraceChar);
+
+    stickerBtn.addEventListener('click', () => {
+      const grid = document.getElementById('stickerGrid'); grid.innerHTML = '';
+      STICKER_CATALOG.forEach((st, idx) => {
+        const isUnlocked = idx < unlockedStickers, slot = document.createElement('div');
+        slot.className = 'sticker-slot' + (isUnlocked ? ' unlocked' : '');
+        slot.innerHTML = isUnlocked ? `${st.e}<span>${st.name}</span>` : `🔒<span>#${idx + 1}</span>`;
+        if (isUnlocked) slot.addEventListener('click', () => { audio.playPopSound(); audio.speak(st.name, 'en-US'); });
+        grid.appendChild(slot);
+      });
+      document.getElementById('stickerModal').style.display = 'flex';
+    });
+
+    focusBtn.addEventListener('click', () => {
+      const L = curLang(), grid = document.getElementById('focusGrid'); grid.innerHTML = '';
+      [...Object.keys(L.letters), ...L.numbers.map(n => n.d)].forEach(ch => {
+        const chip = document.createElement('button'); chip.className = 'focus-chip' + (focusSet.has(ch) ? ' selected' : ''); chip.textContent = ch;
+        chip.addEventListener('click', () => { if (focusSet.has(ch)) focusSet.delete(ch); else focusSet.add(ch); chip.classList.toggle('selected', focusSet.has(ch)); });
+        grid.appendChild(chip);
+      });
+      document.getElementById('focusModal').style.display = 'flex';
+    });
+    document.getElementById('focusAllBtn').addEventListener('click', () => { focusSet.clear(); document.getElementById('focusGrid').querySelectorAll('.focus-chip').forEach(c => c.classList.remove('selected')); });
+
+    // ==================== RENDER LOOP ====================
+    function drawBackgroundExtras() {
+      if (!nightMode) return;
       ctx.save();
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#01579b';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      if (shapeId === 'circle') {
-        ctx.arc(x, y, size * 0.48, 0, Math.PI * 2);
-      } else if (shapeId === 'square') {
-        ctx.rect(x - size * 0.42, y - size * 0.42, size * 0.84, size * 0.84);
-      } else if (shapeId === 'triangle') {
-        ctx.moveTo(x, y - size * 0.5);
-        ctx.lineTo(x + size * 0.48, y + size * 0.4);
-        ctx.lineTo(x - size * 0.48, y + size * 0.4);
-        ctx.closePath();
-      } else if (shapeId === 'star') {
-        for (let i = 0; i < 10; i++) {
-          const rad = i % 2 === 0 ? size * 0.52 : size * 0.22;
-          const a = (Math.PI * i) / 5 - Math.PI / 2;
-          if (i === 0) ctx.moveTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad);
-          else ctx.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad);
-        }
+      bgStars.forEach(s => { ctx.fillStyle = `rgba(255, 255, 224, ${0.4 + 0.5 * Math.sin(Date.now() / 500 + s.phase)})`; ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = '#fff9c4'; ctx.beginPath(); ctx.arc(W - 65, 95, 24, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+
+    function drawShapeIcon(shapeId, x, y, size) {
+      ctx.save(); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#01579b'; ctx.lineWidth = 3; ctx.beginPath();
+      if (shapeId === 'circle') ctx.arc(x, y, size * 0.48, 0, Math.PI * 2);
+      else if (shapeId === 'square') ctx.rect(x - size * 0.42, y - size * 0.42, size * 0.84, size * 0.84);
+      else if (shapeId === 'triangle') { ctx.moveTo(x, y - size * 0.5); ctx.lineTo(x + size * 0.48, y + size * 0.4); ctx.lineTo(x - size * 0.48, y + size * 0.4); ctx.closePath(); }
+      else if (shapeId === 'star') {
+        for (let i = 0; i < 10; i++) { const rad = i % 2 === 0 ? size * 0.52 : size * 0.22, a = (Math.PI * i) / 5 - Math.PI / 2; if (i === 0) ctx.moveTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad); else ctx.lineTo(x + Math.cos(a) * rad, y + Math.sin(a) * rad); }
         ctx.closePath();
       } else if (shapeId === 'heart') {
-        const s = size * 0.45;
-        ctx.moveTo(x, y + s * 0.8);
-        ctx.bezierCurveTo(x - s * 1.4, y - s * 0.2, x - s * 0.6, y - s * 1.1, x, y - s * 0.35);
-        ctx.bezierCurveTo(x + s * 0.6, y - s * 1.1, x + s * 1.4, y - s * 0.2, x, y + s * 0.8);
+        const s = size * 0.45; ctx.moveTo(x, y + s * 0.8); ctx.bezierCurveTo(x - s * 1.4, y - s * 0.2, x - s * 0.6, y - s * 1.1, x, y - s * 0.35); ctx.bezierCurveTo(x + s * 0.6, y - s * 1.1, x + s * 1.4, y - s * 0.2, x, y + s * 0.8);
       }
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
+      ctx.fill(); ctx.stroke(); ctx.restore();
     }
 
     function drawBalloon(b) {
       ctx.save();
-      const shakeX = b.shake > 0 ? Math.sin(b.shake * 30) * 6 : 0;
-      const bx = b.x + shakeX;
-      const by = b.y;
-
-      // Golden Quest Halo
+      const bx = b.x + (b.shake > 0 ? Math.sin(b.shake * 35) * 7 : 0), by = b.y;
       if (questEnabled && questTarget && b.questKey === questTarget.key) {
-        ctx.beginPath();
-        ctx.arc(bx, by, b.r + 10 + Math.sin(Date.now() / 160) * 4, 0, Math.PI * 2);
-        ctx.strokeStyle = '#ffd740';
-        ctx.lineWidth = 5;
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(bx, by, b.r + 10 + Math.sin(Date.now() / 160) * 4, 0, Math.PI * 2); ctx.strokeStyle = '#ffd740'; ctx.lineWidth = 5; ctx.stroke();
       }
-
-      // String
-      ctx.beginPath();
-      ctx.moveTo(bx, by + b.r * 1.08);
-      ctx.quadraticCurveTo(bx + Math.sin(b.wobblePhase) * 12, by + b.r + 28, bx, by + b.r + 54);
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-      ctx.lineWidth = 2.5;
-      ctx.stroke();
-
-      // Balloon Body
-      ctx.beginPath();
-      ctx.ellipse(bx, by, b.r, b.r * 1.1, 0, 0, Math.PI * 2);
-      ctx.fillStyle = b.color;
-      ctx.fill();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(255,255,255,0.75)';
-      ctx.stroke();
-
-      // Gloss Highlight
-      ctx.beginPath();
-      ctx.ellipse(bx - b.r * 0.32, by - b.r * 0.35, b.r * 0.16, b.r * 0.28, -0.4, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.fill();
-
-      // Tickle Mode Cute Face
-      if (playIdx === 2) {
-        ctx.fillStyle = '#263238';
-        ctx.beginPath();
-        ctx.arc(bx - b.r * 0.25, by - b.r * 0.42, 4, 0, Math.PI * 2);
-        ctx.arc(bx + b.r * 0.25, by - b.r * 0.42, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255, 82, 82, 0.45)';
-        ctx.beginPath();
-        ctx.arc(bx - b.r * 0.36, by - b.r * 0.28, 6, 0, Math.PI * 2);
-        ctx.arc(bx + b.r * 0.36, by - b.r * 0.28, 6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Content Inside Balloon
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-
-      if (b.kind === 'shape') {
-        drawShapeIcon(b.shapeId, bx, by - 6, b.r * 0.85);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `900 ${Math.round(b.r * 0.28)}px sans-serif`;
-        ctx.fillText(b.main, bx, by + b.r * 0.56);
-      } else if (b.kind === 'math') {
-        ctx.font = `${Math.round(b.r * 0.38)}px sans-serif`;
-        ctx.fillText(`${b.fruit.repeat(b.a)} + ${b.fruit.repeat(b.b)}`, bx, by - b.r * 0.22);
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#01579b';
-        ctx.lineWidth = 4;
-        ctx.font = `900 ${Math.round(b.r * 0.42)}px sans-serif`;
-        ctx.strokeText(b.main, bx, by + b.r * 0.32);
-        ctx.fillText(b.main, bx, by + b.r * 0.32);
+      if (b.kind === 'fruit') { ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${Math.round(b.r * 1.45)}px sans-serif`; ctx.fillText(b.emoji, bx, by); ctx.restore(); return; }
+      if (nightMode) { ctx.shadowColor = b.color; ctx.shadowBlur = 18; }
+      const strDir = playIdx === 2 ? -1 : 1;
+      ctx.beginPath(); ctx.moveTo(bx, by + strDir * b.r * 1.08);
+      ctx.quadraticCurveTo(bx + Math.sin(b.wobblePhase) * 12, by + strDir * (b.r + 28), bx, by + strDir * (b.r + 54));
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(bx, by, b.r, b.r * 1.1, 0, 0, Math.PI * 2); ctx.fillStyle = b.color; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.ellipse(bx - b.r * 0.32, by - b.r * 0.35, b.r * 0.16, b.r * 0.28, -0.4, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.fill();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      if (b.kind === 'shape') { drawShapeIcon(b.shapeId, bx, by - 6, b.r * 0.85); ctx.fillStyle = '#ffffff'; ctx.font = `900 ${Math.round(b.r * 0.28)}px sans-serif`; ctx.fillText(b.main, bx, by + b.r * 0.56); }
+      else if (b.kind === 'math') {
+        ctx.font = `${Math.round(b.r * 0.38)}px sans-serif`; ctx.fillText(`${b.fruit.repeat(b.a)} + ${b.fruit.repeat(b.b)}`, bx, by - b.r * 0.22);
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#01579b'; ctx.lineWidth = 4; ctx.font = `900 ${Math.round(b.r * 0.42)}px sans-serif`;
+        ctx.strokeText(b.main, bx, by + b.r * 0.32); ctx.fillText(b.main, bx, by + b.r * 0.32);
+      } else if (b.kind === 'animal') {
+        ctx.font = `${Math.round(b.r * 0.72)}px sans-serif`; ctx.fillText(b.emoji, bx, by - b.r * 0.08);
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 3; ctx.font = `900 ${Math.round(b.r * 0.28)}px sans-serif`;
+        ctx.strokeText(b.main, bx, by + b.r * 0.52); ctx.fillText(b.main, bx, by + b.r * 0.52);
       } else {
-        // Letter, Number, or Color
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-        ctx.lineWidth = 4;
-        const fontSize = b.main.length > 2 ? Math.round(b.r * 0.34) : Math.round(b.r * 0.58);
-        ctx.font = `900 ${fontSize}px sans-serif`;
-        ctx.strokeText(b.main, bx, by - b.r * 0.24);
-        ctx.fillText(b.main, bx, by - b.r * 0.24);
-
-        ctx.font = `${Math.round(b.r * 0.54)}px sans-serif`;
-        ctx.fillText(b.emoji, bx, by + b.r * 0.36);
+        ctx.fillStyle = '#ffffff'; ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 4;
+        ctx.font = `900 ${b.main.length > 2 ? Math.round(b.r * 0.34) : Math.round(b.r * 0.58)}px sans-serif`;
+        ctx.strokeText(b.main, bx, by - b.r * 0.24); ctx.fillText(b.main, bx, by - b.r * 0.24);
+        ctx.font = `${Math.round(b.r * 0.54)}px sans-serif`; ctx.fillText(b.emoji, bx, by + b.r * 0.36);
       }
-
       ctx.restore();
     }
 
     function drawFlashcard(fc) {
       ctx.save();
-      const cw = Math.min(340, W * 0.72);
-      const ch = Math.min(320, H * 0.56);
-      const cx = (W - cw) / 2;
-      const cy = (H - ch) / 2;
-
-      ctx.globalAlpha = Math.min(1, fc.life * 1.4);
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = fc.color;
-      ctx.lineWidth = 6;
-      ctx.roundRect(cx, cy, cw, ch, 28);
-      ctx.fill();
-      ctx.stroke();
-
-      // Corner Letter/Number Badge
-      ctx.fillStyle = fc.color;
-      ctx.font = `900 ${Math.round(ch * 0.14)}px sans-serif`;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(fc.main, cx + 18, cy + 14);
-
-      // Giant Object Illustration
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = `${Math.round(ch * 0.44)}px sans-serif`;
-      ctx.fillText(fc.emoji, W / 2, cy + ch * 0.48);
-
-      // Bold Word Label
-      ctx.fillStyle = '#1a237e';
-      ctx.font = `900 ${Math.round(ch * 0.13)}px sans-serif`;
-      ctx.fillText(fc.word, W / 2, cy + ch * 0.84);
+      const cw = Math.min(340, W * 0.72), ch = Math.min(320, H * 0.56), cx = (W - cw) / 2, cy = (H - ch) / 2;
+      ctx.globalAlpha = Math.min(1, fc.life * 1.4); ctx.fillStyle = '#ffffff'; ctx.strokeStyle = fc.color; ctx.lineWidth = 6;
+      ctx.roundRect(cx, cy, cw, ch, 28); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = fc.color; ctx.font = `900 ${Math.round(ch * 0.14)}px sans-serif`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(fc.main, cx + 18, cy + 14);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `${Math.round(ch * 0.44)}px sans-serif`; ctx.fillText(fc.emoji, W / 2, cy + ch * 0.48);
+      ctx.fillStyle = '#1a237e'; ctx.font = `900 ${fc.word.length > 12 ? Math.round(ch * 0.095) : Math.round(ch * 0.13)}px sans-serif`; ctx.fillText(fc.word, W / 2, cy + ch * 0.84);
       ctx.restore();
     }
 
     function drawLauncher() {
-      if (playIdx !== 1) return;
-      const lx = W / 2;
-      const ly = H - 34;
-      ctx.save();
-      ctx.translate(lx, ly);
-      ctx.rotate(launcherAngle + Math.PI / 2);
-      ctx.fillStyle = '#ff7043';
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
-      ctx.roundRect(-14, -34, 28, 48, 12);
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
+      if (playIdx !== 1 && playIdx !== 2) return;
+      const isTop = (playIdx === 2), lx = W / 2, ly = isTop ? 72 : H - 34;
+      ctx.save(); ctx.translate(lx, ly); ctx.rotate(launcherAngle + Math.PI / 2);
+      ctx.fillStyle = isTop ? '#ab47bc' : '#ff7043'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+      ctx.roundRect(-14, -34, 28, 48, 12); ctx.fill(); ctx.stroke(); ctx.restore();
     }
 
     function animate(ts) {
       if (!W || !H) resizeCanvas();
-      ctx.clearRect(0, 0, W, H);
-
-      // Spawn balloons
+      ctx.clearRect(0, 0, W, H); drawBackgroundExtras();
       const maxBalloons = W < 500 ? 6 : 8;
-      if (balloons.length < maxBalloons && ts - lastSpawn > (fastSpeed ? 900 : 1400)) {
-        spawnBalloon();
-        lastSpawn = ts;
-      }
+      if (balloons.length < maxBalloons && ts - lastSpawn > (fastSpeed ? 850 : 1350)) { spawnBalloon(); lastSpawn = ts; }
 
-      // Update & Draw Balloons
       for (let i = balloons.length - 1; i >= 0; i--) {
-        const b = balloons[i];
-        b.y -= b.vy;
-        b.wobblePhase += 0.03;
-        b.x += Math.sin(b.wobblePhase) * 0.45;
-        if (b.shake > 0) b.shake = Math.max(0, b.shake - 0.05);
-
-        if (b.y < -b.r * 1.6) {
+        const b = balloons[i]; b.vy += b.gravity; b.y += b.vy; b.wobblePhase += 0.03; b.x += b.vx + Math.sin(b.wobblePhase) * 0.4;
+        if (b.shake > 0) b.shake = Math.max(0, b.shake - 0.06);
+        if (b.y < -b.r * 2.2 || b.y > H + b.r * 2.2) {
           const wasQuest = questEnabled && questTarget && b.questKey === questTarget.key;
-          balloons.splice(i, 1);
-          if (wasQuest) pickNewQuest();
-          continue;
+          balloons.splice(i, 1); if (wasQuest) pickNewQuest(); continue;
         }
         drawBalloon(b);
       }
 
-      // Darts (Shoot Mode)
-      for (let i = darts.length - 1; i >= 0; i--) {
-        const d = darts[i];
-        d.x += d.vx;
-        d.y += d.vy;
-        ctx.font = '26px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('⭐', d.x, d.y);
+      for (let i = swipeTrail.length - 1; i >= 0; i--) {
+        const st = swipeTrail[i]; st.life -= 0.08; if (st.life <= 0) { swipeTrail.splice(i, 1); continue; }
+        ctx.save(); ctx.globalAlpha = st.life; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(st.x, st.y, 10 * st.life, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      }
 
+      for (let i = darts.length - 1; i >= 0; i--) {
+        const d = darts[i]; d.x += d.vx; d.y += d.vy; ctx.font = '26px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('⭐', d.x, d.y);
         let hit = false;
-        for (let j = balloons.length - 1; j >= 0; j--) {
-          if (Math.hypot(d.x - balloons[j].x, d.y - balloons[j].y) <= balloons[j].r) {
-            popBalloon(j);
-            hit = true;
-            break;
-          }
-        }
-        if (hit || d.y < -30 || d.x < -30 || d.x > W + 30) {
-          darts.splice(i, 1);
-        }
+        for (let j = balloons.length - 1; j >= 0; j--) if (Math.hypot(d.x - balloons[j].x, d.y - balloons[j].y) <= balloons[j].r) { popBalloon(j); hit = true; break; }
+        if (hit || d.y < -30 || d.y > H + 30 || d.x < -30 || d.x > W + 30) darts.splice(i, 1);
       }
 
       drawLauncher();
 
-      // Confetti Particles
       for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.14;
-        p.life -= 0.024;
-        if (p.life <= 0) {
-          particles.splice(i, 1);
-          continue;
-        }
-        ctx.save();
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+        const p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.14; p.life -= 0.024;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        ctx.save(); ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       }
 
-      // Tickle Speech Bubbles
-      for (let i = speechBubbles.length - 1; i >= 0; i--) {
-        const sb = speechBubbles[i];
-        sb.y -= 0.35;
-        sb.life -= 0.012;
-        if (sb.life <= 0) {
-          speechBubbles.splice(i, 1);
-          continue;
-        }
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, sb.life * 1.5);
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#ff7043';
-        ctx.lineWidth = 3;
-        ctx.roundRect(sb.x - 135, sb.y - 22, 270, 44, 16);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = '#bf360c';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(sb.text, sb.x, sb.y);
-        ctx.restore();
-      }
-
-      // Big Centerpiece Flashcards
       for (let i = flashcards.length - 1; i >= 0; i--) {
-        const fc = flashcards[i];
-        fc.life -= 0.011;
-        if (fc.life <= 0) {
-          flashcards.splice(i, 1);
-          continue;
-        }
+        const fc = flashcards[i]; fc.life -= 0.011; if (fc.life <= 0) { flashcards.splice(i, 1); continue; }
         drawFlashcard(fc);
       }
-
       requestAnimationFrame(animate);
     }
 
-    // Initialize immediately
-    updateHUD();
-    for (let i = 0; i < 5; i++) {
-      spawnBalloon(H * (0.25 + i * 0.15));
-    }
-    requestAnimationFrame(animate);
+    updateHUD(); resetBalloons(); requestAnimationFrame(animate);
   </script>
 </body>
 </html>
